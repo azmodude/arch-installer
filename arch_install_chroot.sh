@@ -56,8 +56,11 @@ echo "root:${ROOT_PASSWORD}" | chpasswd
 echo "${green}Installing bootloader${reset}"
 sed -r -i "s/GRUB_CMDLINE_LINUX_DEFAULT=.*$/GRUB_CMDLINE_LINUX_DEFAULT=\"\"/" /etc/default/grub
 sed -r -i "s/GRUB_CMDLINE_LINUX=.*$/GRUB_CMDLINE_LINUX=\"rd.luks.name=${LUKS_PARTITION_UUID_OS}=crypt-system rd.luks.options=discard ${FSPOINTS//\//\\/} consoleblank=120 apparmor=1 lsm=lockdown,yama,apparmor rw\"/" /etc/default/grub
-[ "${IS_EFI}" = true ] && grub-install --target=x86_64-efi --efi-directory=/boot/esp --bootloader-id=GRUB --recheck
-[ "${IS_EFI}" = false ] && grub-install --target=i386-pc --recheck "${INSTALL_DISK}"
+
+case "${IS_EFI}" in
+    (true)  grub-install --target=x86_64-efi --efi-directory=/boot/esp --bootloader-id=GRUB --recheck;;
+    (false) grub-install --target=i386-pc --recheck "${INSTALL_DISK}";;
+esac
 grub-mkconfig -o /boot/grub/grub.cfg
 
 echo "${green}Exiting chroot${reset}"
