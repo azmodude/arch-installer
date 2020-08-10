@@ -212,7 +212,7 @@ install() {
         INSTALL_DISK="${INSTALL_DISK}" \
         IS_EFI="${IS_EFI}" \
         FSPOINTS="${FSPOINTS}" \
-        /bin/bash --login -c /arch_install_zfs_chroot.sh
+        /bin/bash --login -c /arch_install_chroot.sh
     # remove temporary chroot script
     rm /mnt/arch_install_chroot.sh
 }
