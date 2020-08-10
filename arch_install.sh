@@ -195,7 +195,7 @@ EOM
     cp "/etc/zfs_keyfile" /mnt/etc/zfs_keyfile
     chmod 600 /mnt/etc/zfs_keyfile
 
-    cp "${mydir}/arch_install_zfs_chroot.sh" /mnt
+    cp "${mydir}/arch_install_chroot.sh" /mnt
     arch-chroot /mnt /usr/bin/env \
         MODULES="${MODULES}" \
         HOSTNAME="${HOSTNAME}" \
