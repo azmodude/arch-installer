@@ -74,8 +74,10 @@ setup() {
     grep vendor_id /proc/cpuinfo | grep -q AMD && IS_AMD_CPU=1 ||
         IS_AMD_CPU=0
     [ -d /sys/firmware/efi ] && IS_EFI=true || IS_EFI=false
-    [ "${IS_EFI}" = true ] && echo "Performing UEFI install."
-    [ "${IS_EFI}" = false ] && echo "Performing legacy BIOS install."
+    case "${IS_EFI}" in
+        (true)  echo "Performing UEFI install.";;
+        (false) echo "Performing legacy BIOS install.";;
+    esac
 }
 
 preinstall() {
