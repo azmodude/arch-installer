@@ -2,6 +2,10 @@
 
 set -Eeuxo pipefail
 
+red=$(tput setaf 1)
+green=$(tput setaf 2)
+reset=$(tput sgr0)
+
 mydir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 bootstrap_dialog() {
@@ -47,7 +51,7 @@ setup() {
         bootstrap_dialog --title "Disk encryption" --passwordbox "Please re-enter passphrase to verify.\n" 8 60
         LUKS_PASSPHRASE_VERIFY="$dialog_result"
         if [[ "${LUKS_PASSPHRASE}" != "${LUKS_PASSPHRASE_VERIFY}" ]]; then
-            echo "Passwords did not match."
+            echo "${red}Passwords did not match.${reset}"
             exit 3
         fi
     fi
@@ -58,7 +62,7 @@ setup() {
         bootstrap_dialog --title "Root password" --passwordbox "Please re-enter passphrase to verify.\n" 8 60
         ROOT_PASSWORD_VERIFY="$dialog_result"
         if [[ "${ROOT_PASSWORD}" != "${ROOT_PASSWORD_VERIFY}" ]]; then
-            echo "Passwords did not match."
+            echo "${red}Passwords did not match.${reset}"
             exit 3
         fi
     fi
@@ -67,7 +71,9 @@ setup() {
 
     clear
 
-    [ ! -e "${INSTALL_DISK}" ] && echo "${INSTALL_DISK} does not exist!" && exit 1
+    [ ! -e "${INSTALL_DISK}" ] && \
+        echo "${red}${INSTALL_DISK} does not exist!${reset}" && \
+        exit 1
 
     grep vendor_id /proc/cpuinfo | grep -q Intel && IS_INTEL_CPU=1 ||
         IS_INTEL_CPU=0
@@ -75,13 +81,14 @@ setup() {
         IS_AMD_CPU=0
     [ -d /sys/firmware/efi ] && IS_EFI=true || IS_EFI=false
     case "${IS_EFI}" in
-        (true)  echo "Performing UEFI install.";;
-        (false) echo "Performing legacy BIOS install.";;
+        (true)  echo "${green}Performing UEFI install${reset}";;
+        (false) echo "${green}Performing legacy BIOS install${reset}";;
     esac
 }
 
 preinstall() {
     # install needed stuff for install
+    echo "${green}Installing necessary packages${reset}"
     pacman -S --needed --noconfirm parted dialog bc dosfstools \
         arch-install-scripts xfsprogs lvm2 zfs-utils
     # set keys to German
@@ -89,6 +96,7 @@ preinstall() {
     # enable NTP
     timedatectl set-ntp true
     # Set up reflector
+    echo "${green}Setting up reflector${reset}"
     pacman -Sy &&
         pacman -S --needed --noconfirm reflector
     reflector --verbose --latest 15 --sort rate --protocol https \
@@ -97,6 +105,7 @@ preinstall() {
 }
 
 partition_lvm_zfs() {
+    echo "${green}Setting up partitions${reset}"
     # calculate end of our OS partition
     OS_END="$(echo "1551+(${OS_SIZE}*1024)" | bc)MiB"
     # create partitions
@@ -191,6 +200,7 @@ install() {
     cp "/etc/zfskey" /mnt/etc/zfskey
     chown root:root && chmod 600 /mnt/etc/zfskey
 
+    echo "${green}Entering chroot${reset}"
     # enter chroot and perform initial configuration
     cp "${mydir}/arch_install_chroot.sh" /mnt
     arch-chroot /mnt /usr/bin/env \
@@ -204,11 +214,12 @@ install() {
         FSPOINTS="${FSPOINTS}" \
         /bin/bash --login -c /arch_install_zfs_chroot.sh
     # remove temporary chroot script
-    rm /mnt/arch_install_zfs_chroot.sh
+    rm /mnt/arch_install_chroot.sh
 }
 
 function tear_down() {
     # tear down our installation environment
+    echo "${green}Tearing down installation environment${reset}"
     swapoff -a
     zpool export dpool
     umount -R /mnt
@@ -230,8 +241,12 @@ if [ "$(systemd-detect-virt)" == 'kvm' ]; then # vagrant box, install stuff
     echo "Virtualization detected."
 fi
 
+echo "${green}Installation starting${reset}"
+
 preinstall
 setup
 partition_lvm_zfs
 install
 tear_down
+
+echo "${green}Installation finished${reset}"
