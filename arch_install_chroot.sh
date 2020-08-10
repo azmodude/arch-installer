@@ -35,7 +35,10 @@ sed -Ei "s|/mnt/?|/|" /etc/zfs/zfs-list.cache/*
 systemctl enable zfs-import-cache
 systemctl enable zfs-import.target
 systemctl enable zfs-zed.service
+# automatically load keys on startup
 systemctl enable zfs-load-key.service
+# enable monthly scrubbing
+systemctl enable zfs-scrub@dpool.timer
 systemctl enable zfs.target
 
 echo "${green}Generating mkinitcpio.conf${reset}"
