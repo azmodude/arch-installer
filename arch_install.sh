@@ -2,8 +2,6 @@
 
 set -Eeuxo pipefail
 
-# zfs datasets
-
 mydir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 bootstrap_dialog() {
@@ -81,10 +79,12 @@ setup() {
 }
 
 preinstall() {
+    # install needed stuff for install
     pacman -S --needed --noconfirm parted dialog bc dosfstools \
         arch-install-scripts xfsprogs lvm2 zfs-utils
+    # set keys to German
     loadkeys de
-    [ ! "${VIRT}" ] && ! ping -c 1 -q 8.8.8.8 >/dev/null && wifi-menu
+    # enable NTP
     timedatectl set-ntp true
     # Set up reflector
     pacman -Sy &&
@@ -95,7 +95,9 @@ preinstall() {
 }
 
 partition_lvm_zfs() {
+    # calculate end of our OS partition
     OS_END="$(echo "1551+(${OS_SIZE}*1024)" | bc)MiB"
+    # create partitions
     parted --script --align optimal "${INSTALL_DISK}" \
         mklabel gpt \
         mkpart BIOS_GRUB 1MiB 2MIB \
@@ -108,6 +110,7 @@ partition_lvm_zfs() {
 
     # give udev some time to create the new symlinks
     sleep 2
+    # create OS luks encrypted partition
     echo -n "${LUKS_PASSPHRASE}" |
         cryptsetup -v --type luks2 --cipher aes-xts-plain64 \
         --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part4"
@@ -126,21 +129,22 @@ partition_lvm_zfs() {
     swapon /dev/mapper/vg--system-swap
     mount /dev/mapper/vg--system-root /mnt
 
-    # create a keyfile and add it to LUKS partition for ZFS so it unlocks
-    # without entering our password twice
-    dd bs=1 if=/dev/random of="/etc/zfs_keyfile" count=32
-    chmod 600 "/etc/zfs_keyfile"
+    # create a keyfile and save it to LUKS partition (later) for ZFS so it
+    # unlocks # without entering our password twice
+    dd bs=1 if=/dev/random of="/etc/zfskey" count=32
+    chown root:root "/etc/zfskey" && chmod 600 "/etc/zfskey"
 
-    # setup ZFS
+    # setup ZFS pool
     zpool create \
     -o ashift=12 \
     -o autotrim=on \
     -O encryption=aes-256-gcm \
-    -O keylocation=file:///etc/zfs_keyfile -O keyformat=raw \
+    -O keylocation=file:///etc/zfskey -O keyformat=raw \
     -O acltype=posixacl -O canmount=off -O compression=lz4 \
     -O dnodesize=auto -O normalization=formD -O relatime=on \
     -O xattr=sa -O mountpoint=none dpool \
     -R /mnt "${INSTALL_DISK}"-part5
+    # setup generic ZFS datasets
     zfs create -o mountpoint=/home dpool/home
     zfs create -o mountpoint=/var/lib/docker dpool/docker
 
@@ -157,26 +161,13 @@ install() {
     declare -a EXTRA_PACKAGES
     MODULES=""
 
+    # probably not needed to bake zfs into the initrd, but it won't hurt either
     if [[ "${IS_INTEL_CPU}" -eq 1 ]]; then
         EXTRA_PACKAGES=("intel-ucode")
         MODULES="zfs intel_agp i915"
-        set +e
-        read -r -d '' INITRD <<-EOM
-			initrd /intel-ucode.img
-			initrd /initramfs-linux.img
-EOM
-        set -e
     elif [[ "${IS_AMD_CPU}" -eq 1 ]]; then
         EXTRA_PACKAGES=("amd-ucode")
         MODULES="zfs amdgpu"
-        set +e
-        read -r -d '' INITRD <<-EOM
-			initrd /amd-ucode.img
-			initrd /initramfs-linux.img
-EOM
-        set -e
-    else
-        INITRD="initrd /initramfs-linux.img"
     fi
     FSPOINTS="resume=/dev/mapper/vg--system-swap root=/dev/mapper/vg--system-root"
     EXTRA_PACKAGES+=("xfsprogs")
@@ -191,10 +182,14 @@ EOM
     tac /mnt/etc/fstab | sed -r '/.*\Wzfs\W.*/I,+1 d' > /tmp/fstab.tmp
     tac /tmp/fstab.tmp > /mnt/etc/fstab
 
+    # copy pre-generated configuration files over
     cp -r "${mydir}"/etc/** /mnt/etc
-    cp "/etc/zfs_keyfile" /mnt/etc/zfs_keyfile
-    chmod 600 /mnt/etc/zfs_keyfile
 
+    # copy over our ZFS key
+    cp "/etc/zfskey" /mnt/etc/zfskey
+    chown root:root && chmod 600 /mnt/etc/zfskey
+
+    # enter chroot and perform initial configuration
     cp "${mydir}/arch_install_chroot.sh" /mnt
     arch-chroot /mnt /usr/bin/env \
         MODULES="${MODULES}" \
@@ -206,14 +201,15 @@ EOM
         IS_EFI="${IS_EFI}" \
         FSPOINTS="${FSPOINTS}" \
         /bin/bash --login -c /arch_install_zfs_chroot.sh
+    # remove temporary chroot script
     rm /mnt/arch_install_zfs_chroot.sh
 }
 
 function tear_down() {
+    # tear down our installation environment
     swapoff -a
     zpool export dpool
     umount -R /mnt
-    cryptsetup close crypt-data
     cryptsetup close crypt-system
 }
 
@@ -228,7 +224,7 @@ if ! modinfo zfs &>/dev/null; then
 fi
 
 if [ "$(systemd-detect-virt)" == 'kvm' ]; then # vagrant box, install stuff
-    VIRT=1
+    # VIRT=1
     echo "Virtualization detected."
 fi
 
@@ -236,4 +232,4 @@ preinstall
 setup
 partition_lvm_zfs
 install
-#tear_down
+tear_down

@@ -13,9 +13,11 @@ cat > /etc/hosts << END
 127.0.1.1   ${HOSTNAME_FQDN} ${HOSTNAME%%.*}
 END
 
+echo "Enabling AppArmor"
 sed -r -i 's/^#(write-cache)$/\1/' /etc/apparmor/parser.conf
 systemctl enable apparmor.service
 
+echo "Setting up and enabling ZFS"
 zpool set cachefile=/etc/zfs/zpool.cache dpool
 mkdir -p /etc/zfs/zfs-list.cache
 touch /etc/zfs/zfs-list.cache/dpool
@@ -39,6 +41,7 @@ FILES=()
 HOOKS="base systemd autodetect modconf sd-vconsole keyboard block sd-encrypt sd-lvm2 filesystems fsck"
 COMPRESSION=gzip
 END
+echo "Generating initrd"
 mkinitcpio -p linux
 echo "Setting root passwd"
 echo "root:${ROOT_PASSWORD}" | chpasswd
@@ -46,5 +49,5 @@ echo "Installing bootloader"
 sed -r -i "s/GRUB_CMDLINE_LINUX_DEFAULT=.*$/GRUB_CMDLINE_LINUX_DEFAULT=\"\"/" /etc/default/grub
 sed -r -i "s/GRUB_CMDLINE_LINUX=.*$/GRUB_CMDLINE_LINUX=\"rd.luks.name=${LUKS_PARTITION_UUID_OS}=crypt-system rd.luks.options=discard ${FSPOINTS//\//\\/} consoleblank=120 apparmor=1 lsm=lockdown,yama,apparmor rw\"/" /etc/default/grub
 [ "${IS_EFI}" = true ] && grub-install --target=x86_64-efi --efi-directory=/boot/esp --bootloader-id=GRUB --recheck
-[ "${IS_EFI}" = false ] && grub-install --target=i386-pc --recheck ${INSTALL_DISK}
+[ "${IS_EFI}" = false ] && grub-install --target=i386-pc --recheck "${INSTALL_DISK}"
 grub-mkconfig -o /boot/grub/grub.cfg
