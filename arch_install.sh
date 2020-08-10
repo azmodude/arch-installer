@@ -89,7 +89,7 @@ setup() {
 preinstall() {
     # install needed stuff for install
     echo "${green}Installing necessary packages${reset}"
-    pacman -S --needed --noconfirm parted dialog bc dosfstools \
+    pacman -S --needed --noconfirm parted sfdisk dialog bc dosfstools \
         arch-install-scripts xfsprogs lvm2 zfs-utils
     # set keys to German
     loadkeys de
@@ -118,6 +118,10 @@ partition_lvm_zfs() {
         mkpart boot 551MiB 1551MiB \
         mkpart primary 1551MiB "${OS_END}" \
         mkpart primary "${OS_END}" 100%
+
+    # change ZFS partition to its correct type, default is 8300 for linux
+    # see https://en.wikipedia.org/wiki/GUID_Partition_Table for GUID ids
+    sfdisk --part-type "${INSTALL_DISK}" 5 6A898CC3-1DD2-11B2-99A6-080020736631
 
     # give udev some time to create the new symlinks
     sleep 2
