@@ -226,6 +226,8 @@ function tear_down() {
     echo "${green}Tearing down installation environment${reset}"
     swapoff -a
     zpool export dpool
+    # remove traces of /mnt from zfs-cache
+    sed -Ei "s|/mnt/?|/|" /mnt/etc/zfs/zfs-list.cache/*
     umount -R /mnt
     cryptsetup close crypt-system
 }

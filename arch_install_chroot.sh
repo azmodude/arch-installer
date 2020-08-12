@@ -34,7 +34,6 @@ ln -s /usr/lib/zfs/zed.d/history_event-zfs-list-cacher.sh /etc/zfs/zed.d
 # shellcheck disable=SC2015
 zed && sleep 5 && zfs set canmount=on dpool && zfs set canmount=off dpool && \
     pkill zed || true
-sed -Ei "s|/mnt/?|/|" /etc/zfs/zfs-list.cache/*
 
 systemctl enable zfs-import-cache
 systemctl enable zfs-import.target
