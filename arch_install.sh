@@ -89,7 +89,7 @@ setup() {
 preinstall() {
     # install needed stuff for install
     echo "${green}Installing necessary packages${reset}"
-    pacman -S --needed --noconfirm parted util-linux dialog bc dosfstools \
+    pacman -Sy --needed --noconfirm parted util-linux dialog bc dosfstools \
         arch-install-scripts xfsprogs lvm2 zfs-utils
     # set keys to German
     loadkeys de
