@@ -66,5 +66,3 @@ case "${IS_EFI}" in
     (false) grub-install --target=i386-pc --recheck "${INSTALL_DISK}";;
 esac
 grub-mkconfig -o /boot/grub/grub.cfg
-
-echo "${green}Exiting chroot${reset}"
