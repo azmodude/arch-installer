@@ -155,9 +155,9 @@ partition_lvm_zfs() {
     -o autotrim=on \
     -O encryption=aes-256-gcm \
     -O keylocation=file:///etc/zfskey -O keyformat=raw \
-    -O acltype=posixacl -O canmount=off -O compression=lz4 \
+    -O acltype=posixacl -O compression=lz4 \
     -O dnodesize=auto -O normalization=formD -O relatime=on \
-    -O xattr=sa -O mountpoint=none dpool \
+    -O xattr=sa -O canmount=off -O mountpoint=/ dpool \
     -R /mnt "${INSTALL_DISK}"-part5
     # setup generic ZFS datasets
     zfs create -o mountpoint=/home dpool/home
