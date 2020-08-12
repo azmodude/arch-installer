@@ -188,7 +188,7 @@ install() {
     EXTRA_PACKAGES+=("xfsprogs")
     pacstrap /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
         linux linux-firmware lvm2 grub cryptsetup terminus-font apparmor \
-        zfs-linux zfs-utils python-cffi "${EXTRA_PACKAGES[@]}"
+        zfs-linux zfs-utils python-cffi neovim "${EXTRA_PACKAGES[@]}"
     genfstab -U /mnt >> /mnt/etc/fstab
     # genfstab puts our zfs datasets into /ec/fstab, which causes all sorts
     # of problems on reboot. Remove them
