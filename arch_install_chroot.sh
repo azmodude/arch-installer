@@ -18,6 +18,10 @@ cat > /etc/hosts << END
 127.0.1.1   ${HOSTNAME_FQDN} ${HOSTNAME%%.*}
 END
 
+# get and lsign archzfs keys
+pacman-key --keyserver pool.sks-keyservers.net -r DDF7DB817396A49B2A2723F7403BD972F75D9D76
+pacman-key --lsign-key DDF7DB817396A49B2A2723F7403BD972F75D9D76
+
 echo "${green}Enabling AppArmor${reset}"
 sed -r -i 's/^#(write-cache)$/\1/' /etc/apparmor/parser.conf
 systemctl enable apparmor.service
