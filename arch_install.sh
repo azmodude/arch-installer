@@ -6,7 +6,7 @@ red=$(tput setaf 1)
 green=$(tput setaf 2)
 reset=$(tput sgr0)
 
-mydir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+mydir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 bootstrap_dialog() {
     dialog_result=$(dialog --clear --stdout --backtitle "Arch bootstrapper" --no-shadow "$@" 2>/dev/null)
@@ -26,8 +26,8 @@ setup() {
             disks+=("${disk}" "$(basename "$(readlink "$disk")")")
         done
         bootstrap_dialog --title "Choose installation disk" \
-                        --menu "Which disk to install on?" 0 0 0 \
-                        "${disks[@]}"
+            --menu "Which disk to install on?" 0 0 0 \
+            "${disks[@]}"
         INSTALL_DISK="${dialog_result}"
     fi
 
@@ -71,9 +71,10 @@ setup() {
 
     clear
 
-    [ ! -e "${INSTALL_DISK}" ] && \
-        echo "${red}${INSTALL_DISK} does not exist!${reset}" && \
+    if [ ! -e "${INSTALL_DISK}" ]; then
+        echo "${red}${INSTALL_DISK} does not exist!${reset}"
         exit 1
+    fi
 
     grep vendor_id /proc/cpuinfo | grep -q Intel && IS_INTEL_CPU=1 ||
         IS_INTEL_CPU=0
@@ -81,8 +82,8 @@ setup() {
         IS_AMD_CPU=0
     [ -d /sys/firmware/efi ] && IS_EFI=true || IS_EFI=false
     case "${IS_EFI}" in
-        (true)  echo "${green}Performing UEFI install${reset}";;
-        (false) echo "${green}Performing legacy BIOS install${reset}";;
+    true) echo "${green}Performing UEFI install${reset}" ;;
+    false) echo "${green}Performing legacy BIOS install${reset}" ;;
     esac
 }
 
@@ -128,7 +129,7 @@ partition_lvm_zfs() {
     # create OS luks encrypted partition
     echo -n "${LUKS_PASSPHRASE}" |
         cryptsetup -v --type luks2 --cipher aes-xts-plain64 \
-        --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part4"
+            --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part4"
     echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part4" crypt-system
     LUKS_PARTITION_UUID_OS=$(cryptsetup luksUUID "${INSTALL_DISK}-part4")
 
@@ -151,16 +152,17 @@ partition_lvm_zfs() {
 
     # setup ZFS pool
     zpool create \
-    -o ashift=12 \
-    -o autotrim=on \
-    -O encryption=aes-256-gcm \
-    -O keylocation=file:///etc/zfskey -O keyformat=raw \
-    -O acltype=posixacl -O compression=lz4 \
-    -O dnodesize=auto -O normalization=formD -O relatime=on \
-    -O xattr=sa -O canmount=off -O mountpoint=/ dpool \
-    -R /mnt "${INSTALL_DISK}"-part5
+        -o ashift=12 \
+        -o autotrim=on \
+        -O encryption=aes-256-gcm \
+        -O keylocation=file:///etc/zfskey -O keyformat=raw \
+        -O acltype=posixacl -O compression=lz4 \
+        -O dnodesize=auto -O normalization=formD -O relatime=on \
+        -O xattr=sa -O canmount=off -O mountpoint=/ dpool \
+        -R /mnt "${INSTALL_DISK}"-part5
     # setup generic ZFS datasets
     zfs create -o mountpoint=/home dpool/home
+    zfs create -o mountpoint=/root dpool/home/root
     zfs create -o mountpoint=/var/lib/docker dpool/docker
 
     # setup boot partition
@@ -189,13 +191,13 @@ install() {
     pacstrap /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
         linux linux-firmware lvm2 grub cryptsetup terminus-font apparmor \
         zfs-linux zfs-utils python-cffi neovim "${EXTRA_PACKAGES[@]}"
-    genfstab -U /mnt >> /mnt/etc/fstab
+    genfstab -U /mnt >>/mnt/etc/fstab
     # genfstab puts our zfs datasets into /ec/fstab, which causes all sorts
     # of problems on reboot. Remove them
     # sed does not backtrack, therefore reverse file, search for zfs, then
     # remove that line and one more (which is the comment) and re-reverse it
-    tac /mnt/etc/fstab | sed -r '/.*\Wzfs\W.*/I,+1 d' > /tmp/fstab.tmp
-    tac /tmp/fstab.tmp > /mnt/etc/fstab
+    tac /mnt/etc/fstab | sed -r '/.*\Wzfs\W.*/I,+1 d' >/tmp/fstab.tmp
+    tac /tmp/fstab.tmp >/mnt/etc/fstab
 
     # copy pre-generated configuration files over
     cp -r "${mydir}"/etc/** /mnt/etc
