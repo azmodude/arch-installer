@@ -163,6 +163,7 @@ partition_lvm_zfs() {
     # setup generic ZFS datasets
     zfs create -o mountpoint=/home dpool/home
     zfs create -o mountpoint=/root dpool/home/root
+    chown root:root /mnt/root && chmod 700 /mnt/root
     zfs create -o mountpoint=/var/lib/docker dpool/docker
 
     # setup boot partition
