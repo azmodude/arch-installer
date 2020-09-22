@@ -47,6 +47,9 @@ systemctl enable zfs-load-key.service
 systemctl enable zfs-scrub@dpool.timer
 systemctl enable zfs.target
 
+# bind mount /root into /home/root for better organization
+systemctl enable home-root.mount
+
 echo "${green}Generating mkinitcpio.conf${reset}"
 cat > /etc/mkinitcpio.conf << END
 MODULES=(${MODULES})
