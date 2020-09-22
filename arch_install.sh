@@ -40,11 +40,6 @@ setup() {
         OS_SIZE="$dialog_result"
     fi
 
-    if [ -z "${SWAP_SIZE:-}" ]; then
-        bootstrap_dialog --title "Swap Size" --inputbox "Please enter a swap size in GB.\n" 8 60
-        SWAP_SIZE="$dialog_result"
-    fi
-
     if [ -z "${LUKS_PASSPHRASE:-}" ]; then
         bootstrap_dialog --title "Disk encryption" --passwordbox "Please enter a strong passphrase for the full disk encryption.\n" 8 60
         LUKS_PASSPHRASE="$dialog_result"
@@ -136,13 +131,10 @@ partition_lvm_zfs() {
     # setup lvm for the OS
     pvcreate /dev/mapper/crypt-system
     vgcreate vg-system /dev/mapper/crypt-system
-    lvcreate -L "${SWAP_SIZE}"G vg-system -n swap
     lvcreate -l 100%FREE vg-system -n root
 
-    # create OS filesystem and swap
+    # create OS filesystem and (no longer) swap
     mkfs.xfs -L root /dev/mapper/vg--system-root
-    mkswap /dev/mapper/vg--system-swap
-    swapon /dev/mapper/vg--system-swap
     mount /dev/mapper/vg--system-root /mnt
 
     # create a keyfile and save it to LUKS partition (later) for ZFS so it
@@ -187,11 +179,11 @@ install() {
         EXTRA_PACKAGES=("amd-ucode")
         MODULES="zfs amdgpu"
     fi
-    FSPOINTS="resume=/dev/mapper/vg--system-swap root=/dev/mapper/vg--system-root"
+    FSPOINTS="root=/dev/mapper/vg--system-root"
     EXTRA_PACKAGES+=("xfsprogs")
     pacstrap /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
-        linux linux-firmware lvm2 grub cryptsetup terminus-font apparmor \
-        zfs-linux zfs-utils python-cffi neovim "${EXTRA_PACKAGES[@]}"
+        linux linux-firmware systemd-swap lvm2 grub cryptsetup terminus-font \
+        apparmor zfs-linux zfs-utils python-cffi neovim "${EXTRA_PACKAGES[@]}"
     genfstab -U /mnt >>/mnt/etc/fstab
     # genfstab puts our zfs datasets into /ec/fstab, which causes all sorts
     # of problems on reboot. Remove them

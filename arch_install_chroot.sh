@@ -26,6 +26,9 @@ echo "${green}Enabling AppArmor${reset}"
 sed -r -i 's/^#(write-cache)$/\1/' /etc/apparmor/parser.conf
 systemctl enable apparmor.service
 
+echo "${green}Enabling systemd-swap${reset}"
+systemctl enable systemd-swap.service
+
 echo "${green}Setting up and enabling ZFS${reset}"
 zpool set cachefile=/etc/zfs/zpool.cache dpool
 mkdir -p /etc/zfs/zfs-list.cache
