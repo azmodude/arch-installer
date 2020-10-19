@@ -12,15 +12,12 @@ Vagrant.configure("2") do |config|
     # as we are using a GUI, modify VM to accomodate for that
     arch.vm.provider :libvirt do |lv|
       # lv.loader = '/usr/share/qemu/OVMF.fd'
+      lv.cpus = 2
       lv.memory ='1536'
       lv.video_type = 'qxl'
       lv.graphics_type ='spice'
       lv.keymap = 'de'
       lv.channel :type => 'spicevmc', :target_name => 'com.redhat.spice.0', :target_type => 'virtio'
-      # we need SCSI as bus here since udev (usually) does not create by-id
-      # links when virtio devices are used; particularly bad when used with
-      # zfs as we use /dev/disk/by-id/xxxyyyzzz here.
-      lv.storage :file, :size => '40G', :type => 'qcow2', :bus => 'scsi', :device => 'sdz'
     end
 
     arch.vm.box_check_update = true
@@ -32,15 +29,29 @@ Vagrant.configure("2") do |config|
         pacman-key --init && pacman-key --populate archlinux && \
             pacman -Syw --noconfirm archlinux-keyring && \
             pacman --noconfirm -S archlinux-keyring
+        pacman -S --noconfirm archiso git
+        cp -r /usr/share/archiso/configs/releng /root/archiso
 
-        # copy pacman related files over
-        cp /vagrant/etc/pacman.d/* /etc/pacman.d
-        cp /vagrant/etc/pacman.conf /etc/pacman.conf
-        # get and lsign archzfs keys
-        pacman-key --keyserver pool.sks-keyservers.net -r DDF7DB817396A49B2A2723F7403BD972F75D9D76
+        pacman-key --keyserver keyserver.ubuntu.com -r DDF7DB817396A49B2A2723F7403BD972F75D9D76
         pacman-key --lsign-key DDF7DB817396A49B2A2723F7403BD972F75D9D76
-        pacman -Syyu --noconfirm
-        pacman -S --noconfirm zfs-linux zfs-utils
+        # eof is quoted so it will not expand $repo
+        cat <<-'EOF' >> /root/archiso/pacman.conf
+			[archzfs]
+			Server = http://archzfs.com/$repo/x86_64
+			[archzfs-kernels]
+			Server = http://end.re/$repo/
+EOF
+        pacman -Sy
+        cat <<-EOF >> /root/archiso/packages.x86_64
+			# azmo
+			reflector
+			git
+			neovim
+			zfs-linux
+EOF
+      git clone https://github.com/azmodude/arch-installer \
+        /root/archiso/airootfs/root/arch-installer
+      cd /root/archiso && mkarchiso -v . && cp /root/archiso/out/*.iso /vagrant
 SCRIPT
     arch.vm.provision "shell", inline: $provisioning_script_archkeys
 
