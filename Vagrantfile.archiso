@@ -48,6 +48,7 @@ EOF
 			git
 			neovim
 			zfs-linux
+			zfs-utils
 EOF
       git clone https://github.com/azmodude/arch-installer \
         /root/archiso/airootfs/root/arch-installer
