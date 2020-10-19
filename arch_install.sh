@@ -16,7 +16,7 @@ bootstrap_dialog() {
     fi
 }
 bootstrap_dialog_non_mandatory() {
-    dialog_result=$(dialog --clear --stdout --backtitle "ZFS bootstrapper" --no-shadow "$@" 2>/dev/null)
+    dialog_result=$(dialog --clear --stdout --backtitle "Arch bootstrapper" --no-shadow "$@" 2>/dev/null)
 }
 
 setup() {
@@ -86,7 +86,7 @@ preinstall() {
     # install needed stuff for install
     echo "${green}Installing necessary packages${reset}"
     pacman -Sy --needed --noconfirm parted util-linux dialog bc dosfstools \
-        arch-install-scripts xfsprogs lvm2 zfs-utils
+        arch-install-scripts xfsprogs lvm2
     # set keys to German
     loadkeys de
     # enable NTP
