@@ -144,7 +144,7 @@ partition_lvm_zfs() {
         chmod 600 "/etc/zfskey_dpool_${HOSTNAME_FQDN}"
 
     # setup ZFS pool
-    zpool create \
+    zpool create -f \
         -o ashift=12 \
         -o autotrim=on \
         -O encryption=aes-256-gcm \
@@ -182,7 +182,7 @@ install() {
     fi
     FSPOINTS="root=/dev/mapper/vg--system-root"
     EXTRA_PACKAGES+=("xfsprogs")
-    pacstrap /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
+    pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
         linux linux-firmware systemd-swap lvm2 grub cryptsetup terminus-font \
         apparmor zfs-linux zfs-utils python-cffi neovim "${EXTRA_PACKAGES[@]}"
     genfstab -U /mnt >>/mnt/etc/fstab
@@ -197,8 +197,10 @@ install() {
     cp -r "${mydir}"/etc/** /mnt/etc
 
     # copy over our ZFS key
-    cp "/etc/zfskey" /mnt/etc/zfskey
-    chown root:root && chmod 600 /mnt/etc/zfskey
+    cp "/etc/zfskey_dpool_${HOSTNAME_FQDN}" \
+        "/mnt/etc/zfskey_dpool_${HOSTNAME_FQDN}"
+    chown root:root "/etc/zfskey_dpool_${HOSTNAME_FQDN}" && \
+        chmod 600 "/mnt/etc/zfskey_dpool_${HOSTNAME_FQDN}"
 
     echo "${green}Entering chroot${reset}"
     # enter chroot and perform initial configuration
