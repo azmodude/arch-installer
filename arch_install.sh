@@ -165,7 +165,7 @@ partition_lvm_zfs() {
 
     # create a keyfile and save it to LUKS partition (later) for ZFS so it
     # unlocks without entering our password twice
-    dd bs=1 if=/dev/random of="/etc/zfskey_dpool_${HOSTNAME_FQDN}" count=32
+    openssl rand -hex -out "/etc/zfskey_dpool_${HOSTNAME_FQDN}" 32
     chown root:root "/etc/zfskey_dpool_${HOSTNAME_FQDN}" &&
         chmod 600 "/etc/zfskey_dpool_${HOSTNAME_FQDN}"
 
@@ -175,7 +175,7 @@ partition_lvm_zfs() {
         -o autotrim=on \
         -O encryption=aes-256-gcm \
         -O keylocation="file:///etc/zfskey_dpool_${HOSTNAME_FQDN}" \
-        -O keyformat=raw -O acltype=posixacl -O compression=zstd \
+        -O keyformat=hex -O acltype=posixacl -O compression=zstd \
         -O dnodesize=auto -O normalization=formD -O relatime=on \
         -O xattr=sa -O canmount=off -O mountpoint=/ dpool \
         -R /mnt "${INSTALL_DISK}"-part5
