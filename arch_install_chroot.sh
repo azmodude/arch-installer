@@ -29,7 +29,7 @@ systemctl enable apparmor.service
 echo "${green}Setting up and enabling ZFS${reset}"
 zpool set cachefile=/etc/zfs/zpool.cache dpool
 # enable zfs services
-systemctl enable zfs-import-cache
+systemctl enable zfs-import-cache.service
 systemctl enable zfs-import.target
 systemctl enable zfs-mount.service
 systemctl enable zfs.target
