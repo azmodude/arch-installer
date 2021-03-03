@@ -53,7 +53,7 @@ MODULES=(${MODULES})
 BINARIES=()
 FILES=()
 HOOKS="base systemd autodetect modconf sd-vconsole keyboard block sd-encrypt sd-lvm2 filesystems fsck"
-COMPRESSION=gzip
+COMPRESSION=lz4
 END
 echo "${green}Generating initrd${reset}"
 mkinitcpio -p linux

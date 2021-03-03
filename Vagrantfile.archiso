@@ -41,8 +41,8 @@ Vagrant.configure("2") do |config|
 			Server = http://mirror.sum7.eu/archlinux/archzfs/$repo/$arch
 			Server = https://mirror.biocrafting.net/archlinux/archzfs/$repo/$arch
 			Server = https://mirror.in.themindsmaze.com/archzfs/$repo/$arch
-			[archzfs-kernels]
-			Server = http://end.re/$repo/
+			[zfs-linux]
+			Server = http://kernels.archzfs.com/$repo
 EOF
         pacman -Sy
         cat <<-EOF >> /root/archiso/packages.x86_64
