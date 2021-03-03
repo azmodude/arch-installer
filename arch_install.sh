@@ -210,8 +210,9 @@ install() {
     FSPOINTS="resume=/dev/mapper/vg--system-swap root=/dev/mapper/vg--system-root"
     EXTRA_PACKAGES+=("xfsprogs")
     pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
-        linux linux-firmware systemd-swap lvm2 grub cryptsetup terminus-font \
-        apparmor zfs-linux zfs-utils python-cffi neovim "${EXTRA_PACKAGES[@]}"
+        linux linux-lts linux-firmware systemd-swap lvm2 grub cryptsetup terminus-font \
+        apparmor zfs-linux zfs-linux-lts zfs-utils python-cffi \
+        neovim "${EXTRA_PACKAGES[@]}"
     genfstab -U /mnt >>/mnt/etc/fstab
     # genfstab puts our zfs datasets into /ec/fstab, which causes all sorts
     # of problems on reboot. Remove them
