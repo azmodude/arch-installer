@@ -53,7 +53,7 @@ cat >/etc/mkinitcpio.conf <<END
 MODULES=(${MODULES})
 BINARIES=()
 FILES=()
-HOOKS="base systemd autodetect modconf sd-vconsole keyboard block sd-encrypt sd-lvm2 filesystems fsck"
+HOOKS="base systemd autodetect modconf sd-vconsole keyboard block sd-encrypt lvm2 filesystems fsck"
 COMPRESSION=zstd
 END
 echo "${green}Generating initrd${reset}"
