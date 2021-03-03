@@ -28,13 +28,14 @@ systemctl enable apparmor.service
 
 echo "${green}Setting up and enabling ZFS${reset}"
 zpool set cachefile=/etc/zfs/zpool.cache dpool
+# set up cache files for zed
 mkdir -p /etc/zfs/zfs-list.cache
 touch /etc/zfs/zfs-list.cache/dpool
-ln -s /usr/lib/zfs/zed.d/history_event-zfs-list-cacher.sh /etc/zfs/zed.d
 # shellcheck disable=SC2015
 zed && sleep 5 && zfs set canmount=on dpool && zfs set canmount=off dpool &&
     pkill zed || true
 
+# enable zfs services
 systemctl enable zfs-import-cache
 systemctl enable zfs-import.target
 systemctl enable zfs-zed.service
