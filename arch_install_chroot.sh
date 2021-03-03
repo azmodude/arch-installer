@@ -28,22 +28,15 @@ systemctl enable apparmor.service
 
 echo "${green}Setting up and enabling ZFS${reset}"
 zpool set cachefile=/etc/zfs/zpool.cache dpool
-# set up cache files for zed
-mkdir -p /etc/zfs/zfs-list.cache
-touch /etc/zfs/zfs-list.cache/dpool
-# shellcheck disable=SC2015
-zed && sleep 5 && zfs set canmount=on dpool && zfs set canmount=off dpool &&
-    pkill zed || true
-
 # enable zfs services
 systemctl enable zfs-import-cache
 systemctl enable zfs-import.target
-systemctl enable zfs-zed.service
+systemctl enable zfs-mount.service
+systemctl enable zfs.target
 # automatically load keys on startup
 systemctl enable zfs-load-key.service
 # enable monthly scrubbing
 systemctl enable zfs-scrub@dpool.timer
-systemctl enable zfs.target
 
 # bind mount /root into /home/root for better organization
 systemctl enable home-root.mount
@@ -58,6 +51,7 @@ COMPRESSION=zstd
 END
 echo "${green}Generating initrd${reset}"
 mkinitcpio -p linux
+mkinitcpio -p linux-lts
 echo "${green}Setting root password${reset}"
 echo "root:${ROOT_PASSWORD}" | chpasswd
 echo "${green}Installing bootloader${reset}"
