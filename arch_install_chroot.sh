@@ -44,6 +44,9 @@ systemctl enable home-root.mount
 # setup systemd-resolved
 systemctl enable systemd-resolved.service
 
+echo "${green}Cloning arch-installer repository to /root${reset}"
+git clone https://github.com/azmodude/arch-installer /root/arch-installer
+
 echo "${green}Generating mkinitcpio.conf${reset}"
 cat >/etc/mkinitcpio.conf <<END
 MODULES=(${MODULES})

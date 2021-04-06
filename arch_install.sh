@@ -212,7 +212,7 @@ install() {
     EXTRA_PACKAGES+=("xfsprogs")
     pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
         linux linux-lts linux-firmware systemd-swap lvm2 grub cryptsetup terminus-font \
-        apparmor zfs-linux zfs-linux-lts zfs-utils python-cffi \
+        apparmor zfs-linux zfs-linux-lts zfs-utils python-cffi git \
         neovim "${EXTRA_PACKAGES[@]}"
     genfstab -U /mnt >>/mnt/etc/fstab
     # genfstab puts our zfs datasets into /ec/fstab, which causes all sorts
