@@ -41,6 +41,10 @@ systemctl enable zfs-scrub@dpool.timer
 # bind mount /root into /home/root for better organization
 systemctl enable home-root.mount
 
+# setup systemd-resolved
+systemctl enable systemd-resolved.service
+ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+
 echo "${green}Generating mkinitcpio.conf${reset}"
 cat >/etc/mkinitcpio.conf <<END
 MODULES=(${MODULES})
