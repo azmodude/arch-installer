@@ -184,7 +184,8 @@ partition_lvm_zfs() {
     zfs create -o mountpoint=/root dpool/home/root
     chown root:root /mnt/root && chmod 700 /mnt/root
     zfs create -o mountpoint=/var/lib/docker dpool/docker
-    zfs create -p -o mountpoint=/var/lib/libvirt/images dpool/libvirt/images
+    zfs create -o canmount=off -o mountpoint=none dpool/libvirt
+    zfs create -o mountpoint=/var/lib/libvirt/images dpool/libvirt/images
 
     # setup boot partition
     mkfs.ext4 -L boot "${INSTALL_DISK}-part3"
