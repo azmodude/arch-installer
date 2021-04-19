@@ -195,7 +195,7 @@ install() {
     EXTRA_PACKAGES+=("xfsprogs")
     pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
         linux linux-lts linux-firmware systemd-swap lvm2 grub cryptsetup terminus-font \
-        apparmor btrfs-progrs python-cffi git \
+        apparmor btrfs-progs python-cffi git \
         neovim "${EXTRA_PACKAGES[@]}"
     genfstab -U /mnt >>/mnt/etc/fstab
 
