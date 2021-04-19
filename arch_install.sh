@@ -146,8 +146,10 @@ partition_lvm_btrfs() {
 
     mount -o subvol=@,relatime,autodefrag \
         /dev/mapper/vg--system-root /mnt
-    # mount root btrfs into /mnt/btrfs-root
-    mkdir -p /mnt/mnt/btrfs-root
+    # mount root btrfs into /mnt/btrfs-root and make it only root-accessible
+    mkdir -p /mnt/mnt/btrfs-root && \
+        chown root:root /mnt/mnt/btrfs-root && \
+        chown 700 /mnt/mnt/btrfs-root
     mount -o subvolid=5,relatime,autodefrag \
         /dev/mapper/vg--system-root /mnt/mnt/btrfs-root
 
