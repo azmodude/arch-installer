@@ -18,25 +18,9 @@ cat >/etc/hosts <<END
 127.0.1.1   ${HOSTNAME_FQDN} ${HOSTNAME%%.*}
 END
 
-# get and lsign archzfs keys
-pacman-key --keyserver keyserver.ubuntu.com -r DDF7DB817396A49B2A2723F7403BD972F75D9D76
-pacman-key --lsign-key DDF7DB817396A49B2A2723F7403BD972F75D9D76
-
 echo "${green}Enabling AppArmor${reset}"
 sed -r -i 's/^#(write-cache)$/\1/' /etc/apparmor/parser.conf
 systemctl enable apparmor.service
-
-echo "${green}Setting up and enabling ZFS${reset}"
-zpool set cachefile=/etc/zfs/zpool.cache dpool
-# enable zfs services
-systemctl enable zfs-import-cache.service
-systemctl enable zfs-import.target
-systemctl enable zfs-mount.service
-systemctl enable zfs.target
-# automatically load keys on startup
-systemctl enable zfs-load-key.service
-# enable monthly scrubbing
-systemctl enable zfs-scrub@dpool.timer
 
 # bind mount /root into /home/root for better organization
 systemctl enable home-root.mount

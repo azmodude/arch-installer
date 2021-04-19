@@ -35,10 +35,6 @@ setup() {
         bootstrap_dialog --title "Hostname" --inputbox "Please enter a fqdn for this host.\n" 8 60
         HOSTNAME_FQDN="$dialog_result"
     fi
-    if [ -z "${OS_SIZE:-}" ]; then
-        bootstrap_dialog --title "OS Size" --inputbox "Please enter a size of OS partition in GB.\n" 8 60
-        OS_SIZE="$dialog_result"
-    fi
 
     if [ -z "${SWAP_SIZE:-}" ]; then
         bootstrap_dialog --title "Swap Size" --inputbox "Please enter a swap size in GB.\n" 8 60
@@ -87,29 +83,11 @@ setup() {
     esac
 }
 
-init_archzfs() {
-    pacman -Sy --noconfirm archlinux-keyring
-    pacman-key --populate archlinux &>/dev/null
-    pacman-key --keyserver keyserver.ubuntu.com -r DDF7DB817396A49B2A2723F7403BD972F75D9D76
-    pacman-key --lsign-key DDF7DB817396A49B2A2723F7403BD972F75D9D76
-    # eof is quoted so it will not expand $repo
-    cat <<-'EOF' >> /etc/pacman.conf
-			[archzfs]
-			Server = http://archzfs.com/$repo/$arch
-			Server = http://mirror.sum7.eu/archlinux/archzfs/$repo/$arch
-			Server = https://mirror.biocrafting.net/archlinux/archzfs/$repo/$arch
-			Server = https://mirror.in.themindsmaze.com/archzfs/$repo/$arch
-			[zfs-linux]
-            Server = http://kernels.archzfs.com/$repo/
-EOF
-    pacman -Sy --noconfirm
-}
-
 preinstall() {
     # install needed stuff for install
     echo "${green}Installing necessary packages${reset}"
     pacman -Sy --needed --noconfirm parted util-linux dialog bc dosfstools \
-        arch-install-scripts xfsprogs lvm2 zfs-linux zfs-utils
+        arch-install-scripts btrfs-progs lvm2
     # set keys to German
     loadkeys de
     # enable NTP
@@ -123,10 +101,10 @@ preinstall() {
         --save /etc/pacman.d/mirrorlist
 }
 
-partition_lvm_zfs() {
+partition_lvm_btrfs() {
     echo "${green}Setting up partitions${reset}"
     # calculate end of our OS partition
-    OS_END="$(echo "1551+(${OS_SIZE}*1024)" | bc)MiB"
+    # OS_END="$(echo "1551+(${OS_SIZE}*1024)" | bc)MiB"
     # create partitions
     parted --script --align optimal "${INSTALL_DISK}" \
         mklabel gpt \
@@ -135,12 +113,7 @@ partition_lvm_zfs() {
         mkpart ESP fat32 2MiB 551MiB \
         set 2 esp on \
         mkpart boot 551MiB 1551MiB \
-        mkpart primary 1551MiB "${OS_END}" \
-        mkpart primary "${OS_END}" 100%
-
-    # change ZFS partition to its correct type, default is 8300 for linux
-    # see https://en.wikipedia.org/wiki/GUID_Partition_Table for GUID ids
-    sfdisk --part-type "${INSTALL_DISK}" 5 6A898CC3-1DD2-11B2-99A6-080020736631
+        mkpart primary 1551MiB 100%
 
     # give udev some time to create the new symlinks
     sleep 2
@@ -157,35 +130,40 @@ partition_lvm_zfs() {
     lvcreate -L "${SWAP_SIZE}"G vg-system -n swap
     lvcreate -l 100%FREE vg-system -n root
 
-    # create OS filesystem and swap
-    mkfs.xfs -L root /dev/mapper/vg--system-root
-    mkswap /dev/mapper/vg--system-swap
-    swapon /dev/mapper/vg--system-swap
-    mount /dev/mapper/vg--system-root /mnt
+    mkfs.btrfs -L root /dev/mapper/crypt-system
+    mount /dev/mapper/crypt-system /mnt
+    # convention: subvolumes used as mountpoints start with @
+    btrfs subvolume create /mnt/@
+    btrfs subvolume create /mnt/@home
+    btrfs subvolume create /mnt/@docker
+    btrfs subvolume create /mnt/@var-lib-libvirt-images
+    btrfs subvolume create /mnt/@var-log
+    umount /mnt
 
-    # create a keyfile and save it to LUKS partition (later) for ZFS so it
-    # unlocks without entering our password twice
-    openssl rand -hex -out "/etc/zfskey_dpool_${HOSTNAME_FQDN}" 32
-    chown root:root "/etc/zfskey_dpool_${HOSTNAME_FQDN}" &&
-        chmod 600 "/etc/zfskey_dpool_${HOSTNAME_FQDN}"
+    mount -o subvol=@,relatime,autodefrag \
+        /dev/mapper/crypt-system /mnt
+    mkdir /mnt/{boot,home}
+    mount -o subvol=@home,relatime,autodefrag \
+        /dev/mapper/crypt-system /mnt/home
+    btrfs property set /mnt compression zstd
+    btrfs property set /mnt/home compression zstd
 
-    # setup ZFS pool
-    zpool create -f \
-        -o ashift=12 \
-        -o autotrim=on \
-        -O encryption=aes-256-gcm \
-        -O keylocation="file:///etc/zfskey_dpool_${HOSTNAME_FQDN}" \
-        -O keyformat=hex -O acltype=posixacl -O compression=zstd \
-        -O dnodesize=auto -O normalization=formD -O relatime=on \
-        -O xattr=sa -O canmount=off -O mountpoint=/ dpool \
-        -R /mnt "${INSTALL_DISK}"-part5
-    # setup generic ZFS datasets
-    zfs create -o mountpoint=/home dpool/home
-    zfs create -o mountpoint=/root dpool/home/root
-    chown root:root /mnt/root && chmod 700 /mnt/root
-    zfs create -o mountpoint=/var/lib/docker dpool/docker
-    zfs create -o canmount=off -o mountpoint=none dpool/libvirt
-    zfs create -o mountpoint=/var/lib/libvirt/images dpool/libvirt/images
+    mkdir -p /mnt/var/log
+    mount -o subvol=@var-log,compress=none,relatime,autodefrag \
+        /dev/mapper/crypt-system /mnt/var/log
+
+    mkdir -p /mnt/var/lib/{docker,libvirt}
+    mount -o subvol=@docker,compress=none,relatime,autodefrag \
+        /dev/mapper/crypt-system /mnt/var/lib/docker
+    mount -o subvol=@var-lib-libvirt-images,compress=none,nodatacow,relatime,autodefrag \
+        /dev/mapper/crypt-system /mnt/var/lib/libvirt/images
+    # set NOCOW on that directory - I wish btrfs had per subvolume options...
+    chattr +C /mnt/var/lib/libvirt/images
+
+    # create extra subvolumes so we don't clobber our / snapshots
+    btrfs subvolume create /mnt/var/abs
+    btrfs subvolume create /mnt/var/cache
+    btrfs subvolume create /mnt/var/tmp
 
     # setup boot partition
     mkfs.ext4 -L boot "${INSTALL_DISK}-part3"
@@ -193,7 +171,7 @@ partition_lvm_zfs() {
 
     # setup ESP
     mkfs.fat -F32 -n ESP "${INSTALL_DISK}-part2"
-    mkdir -p /mnt/boot/esp && mount "${INSTALL_DISK}-part2" /mnt/boot/esp
+    mkdir -p /mnt/boot/efi && mount "${INSTALL_DISK}-part2" /mnt/boot/efi
 }
 
 install() {
@@ -212,24 +190,12 @@ install() {
     EXTRA_PACKAGES+=("xfsprogs")
     pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
         linux linux-lts linux-firmware systemd-swap lvm2 grub cryptsetup terminus-font \
-        apparmor zfs-linux zfs-linux-lts zfs-utils python-cffi git \
+        apparmor btrfs-progrs python-cffi git \
         neovim "${EXTRA_PACKAGES[@]}"
     genfstab -U /mnt >>/mnt/etc/fstab
-    # genfstab puts our zfs datasets into /ec/fstab, which causes all sorts
-    # of problems on reboot. Remove them
-    # sed does not backtrack, therefore reverse file, search for zfs, then
-    # remove that line and one more (which is the comment) and re-reverse it
-    tac /mnt/etc/fstab | sed -r '/.*\Wzfs\W.*/I,+1 d' >/tmp/fstab.tmp
-    tac /tmp/fstab.tmp >/mnt/etc/fstab
 
     # copy pre-generated configuration files over
     cp -r "${mydir}"/etc/** /mnt/etc
-
-    # copy over our ZFS key
-    cp "/etc/zfskey_dpool_${HOSTNAME_FQDN}" \
-        "/mnt/etc/zfskey_dpool_${HOSTNAME_FQDN}"
-    chown root:root "/etc/zfskey_dpool_${HOSTNAME_FQDN}" && \
-        chmod 600 "/mnt/etc/zfskey_dpool_${HOSTNAME_FQDN}"
 
     echo "${green}Entering chroot${reset}"
     # enter chroot and perform initial configuration
@@ -252,18 +218,12 @@ function tear_down() {
     # tear down our installation environment
     echo "${green}Tearing down installation environment${reset}"
     swapoff -a
-    zpool export dpool
     umount -R /mnt
     cryptsetup close crypt-system
 }
 
 if [ "$(id -u)" != 0 ]; then
     echo "Please execute with root rights."
-    exit 1
-fi
-
-if ! modinfo zfs &>/dev/null; then
-    echo "ZFS kernel module not available"
     exit 1
 fi
 
@@ -274,10 +234,9 @@ fi
 
 echo "${green}Installation starting${reset}"
 
-init_archzfs
 preinstall
 setup
-partition_lvm_zfs
+partition_lvm_btrfs
 install
 tear_down
 

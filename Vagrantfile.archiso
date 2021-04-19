@@ -32,26 +32,12 @@ Vagrant.configure("2") do |config|
         pacman -S --noconfirm archiso git
         cp -r /usr/share/archiso/configs/releng /root/archiso
 
-        pacman-key --keyserver keyserver.ubuntu.com -r DDF7DB817396A49B2A2723F7403BD972F75D9D76
-        pacman-key --lsign-key DDF7DB817396A49B2A2723F7403BD972F75D9D76
-        # eof is quoted so it will not expand $repo
-        cat <<-'EOF' >> /root/archiso/pacman.conf
-			[archzfs]
-			Server = http://archzfs.com/$repo/x86_64
-			Server = http://mirror.sum7.eu/archlinux/archzfs/$repo/$arch
-			Server = https://mirror.biocrafting.net/archlinux/archzfs/$repo/$arch
-			Server = https://mirror.in.themindsmaze.com/archzfs/$repo/$arch
-			[zfs-linux]
-			Server = http://kernels.archzfs.com/$repo
-EOF
-        pacman -Sy
         cat <<-EOF >> /root/archiso/packages.x86_64
 			# azmo
 			reflector
 			git
 			neovim
-			zfs-linux
-			zfs-utils
+			btrfs-progs
 EOF
       git clone https://github.com/azmodude/arch-installer \
         /root/archiso/airootfs/root/arch-installer
