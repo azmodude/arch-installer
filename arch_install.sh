@@ -112,8 +112,8 @@ partition_lvm_btrfs() {
         set 1 bios_grub on \
         mkpart ESP fat32 2MiB 551MiB \
         set 2 esp on \
-        mkpart boot 551MiB 1551MiB \
-        mkpart primary 1551MiB 100%
+        mkpart boot 551MiB 2551MiB \
+        mkpart primary 2551MiB 100%
 
     # give udev some time to create the new symlinks
     sleep 2
