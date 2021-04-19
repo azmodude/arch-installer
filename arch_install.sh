@@ -183,13 +183,12 @@ install() {
     declare -a EXTRA_PACKAGES
     MODULES=""
 
-    # probably not needed to bake zfs into the initrd, but it won't hurt either
     if [[ "${IS_INTEL_CPU}" -eq 1 ]]; then
         EXTRA_PACKAGES=("intel-ucode")
-        MODULES="zfs intel_agp i915"
+        MODULES="intel_agp i915"
     elif [[ "${IS_AMD_CPU}" -eq 1 ]]; then
         EXTRA_PACKAGES=("amd-ucode")
-        MODULES="zfs amdgpu"
+        MODULES="amdgpu"
     fi
     FSPOINTS="resume=/dev/mapper/vg--system-swap root=/dev/mapper/vg--system-root"
     EXTRA_PACKAGES+=("xfsprogs")
