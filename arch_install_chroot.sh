@@ -30,6 +30,8 @@ systemctl enable systemd-resolved.service
 
 echo "${green}Cloning arch-installer repository to /root${reset}"
 git clone https://github.com/azmodude/arch-installer /root/arch-installer
+echo "${green}Cloning arch-bootstrap repository to /root${reset}"
+git clone https://github.com/azmodude/arch-bootstrap /root/arch-bootstrap
 
 echo "${green}Generating mkinitcpio.conf${reset}"
 cat >/etc/mkinitcpio.conf <<END
