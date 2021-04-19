@@ -130,8 +130,12 @@ partition_lvm_btrfs() {
     lvcreate -L "${SWAP_SIZE}"G vg-system -n swap
     lvcreate -l 100%FREE vg-system -n root
 
-    mkfs.btrfs -L root /dev/mapper/crypt-system
-    mount /dev/mapper/crypt-system /mnt
+    # create swap
+    mkswap /dev/mapper/vg--system-swap
+    swapon /dev/mapper/vg--system-swap
+
+    mkfs.btrfs -L root /dev/mapper/vg--system-root
+    mount /dev/mapper/vg--system-root /mnt
     # convention: subvolumes used as mountpoints start with @
     btrfs subvolume create /mnt/@
     btrfs subvolume create /mnt/@home
