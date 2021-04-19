@@ -145,22 +145,22 @@ partition_lvm_btrfs() {
     umount /mnt
 
     mount -o subvol=@,relatime,autodefrag \
-        /dev/mapper/crypt-system /mnt
+        /dev/mapper/vg--system-root /mnt
     mkdir /mnt/{boot,home}
     mount -o subvol=@home,relatime,autodefrag \
-        /dev/mapper/crypt-system /mnt/home
+        /dev/mapper/vg--system-root /mnt/home
     btrfs property set /mnt compression zstd
     btrfs property set /mnt/home compression zstd
 
     mkdir -p /mnt/var/log
     mount -o subvol=@var-log,compress=none,relatime,autodefrag \
-        /dev/mapper/crypt-system /mnt/var/log
+        /dev/mapper/vg--system-root /mnt/var/log
 
     mkdir -p /mnt/var/lib/{docker,libvirt}
     mount -o subvol=@docker,compress=none,relatime,autodefrag \
-        /dev/mapper/crypt-system /mnt/var/lib/docker
-    mount -o subvol=@var-lib-libvirt-images,compress=none,nodatacow,relatime,autodefrag \
-        /dev/mapper/crypt-system /mnt/var/lib/libvirt/images
+        /dev/mapper/vg--system-root /mnt/var/lib/docker
+    mount -o subvol=@var-lib-libvirt-images,compress=none,nodatacow,relatime,noautodefrag \
+        /dev/mapper/vg--system-root /mnt/var/lib/libvirt/images
     # set NOCOW on that directory - I wish btrfs had per subvolume options...
     chattr +C /mnt/var/lib/libvirt/images
 
