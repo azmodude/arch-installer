@@ -65,7 +65,7 @@ sed -r -i "s/^#GRUB_DISABLE_SUBMENU=.*/GRUB_DISABLE_SUBMENU=y/" /etc/default/gru
 sed -r -i "s/^#GRUB_ENABLE_CRYPTODISK=.*/GRUB_ENABLE_CRYPTODISK=y/" /etc/default/grub
 
 case "${IS_EFI}" in
-true) grub-install --target=x86_64-efi --efi-directory=/boot/esp --bootloader-id=GRUB --recheck ;;
+true) grub-install --target=x86_64-efi --efi-directory=/efi --bootloader-id=GRUB --recheck ;;
 false) grub-install --target=i386-pc --recheck "${INSTALL_DISK}" ;;
 esac
 grub-mkconfig -o /boot/grub/grub.cfg

@@ -190,7 +190,7 @@ partition_lvm_btrfs() {
 
     # setup ESP
     mkfs.fat -F32 -n ESP "${INSTALL_DISK}-part2"
-    mkdir -p /mnt/boot/efi && mount "${INSTALL_DISK}-part2" /mnt/boot/efi
+    mkdir -p /mnt/efi && mount "${INSTALL_DISK}-part2" /mnt/efi
 }
 
 install() {
