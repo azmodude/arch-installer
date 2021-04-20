@@ -106,14 +106,15 @@ partition_lvm_btrfs() {
     # calculate end of our OS partition
     # OS_END="$(echo "1551+(${OS_SIZE}*1024)" | bc)MiB"
     # create partitions
-    parted --script --align optimal "${INSTALL_DISK}" \
-        mklabel gpt \
-        mkpart BIOS_GRUB 1MiB 2MIB \
-        set 1 bios_grub on \
-        mkpart ESP fat32 2MiB 551MiB \
-        set 2 esp on \
-        mkpart boot 551MiB 2551MiB \
-        mkpart primary 2551MiB 100%
+    sgdisk --zap-all ${INSTALL_DISK}
+    # grub
+    sgdisk --new=1:0:+2M -c 1:"BIOS boot" -t 1:ef02 ${INSTALL_DISK}
+    # EFI
+    sgdisk --new=2:0:+512M -c 2:"EFI ESP" -t 2:ef00 ${INSTALL_DISK}
+    # boot
+    sgdisk --new=3:0:+5G -c 3:"boot" -t 3:8309 ${INSTALL_DISK}
+    # data
+    sgdisk --new=4:0:0 -c 4:"system" -t 4:8309 ${INSTALL_DISK}
 
     # give udev some time to create the new symlinks
     sleep 2
