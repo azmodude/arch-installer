@@ -35,9 +35,9 @@ setup() {
         bootstrap_dialog --title "Hostname" --inputbox "Please enter a fqdn for this host.\n" 8 60
         HOSTNAME_FQDN="$dialog_result"
     fi
-    if [ -z "${OS_SIZE:-}" ]; then
-        bootstrap_dialog --title "OS Size" --inputbox "Please enter a size of LVM partition in GB.\n" 8 60
-        OS_SIZE="$dialog_result"
+    if [ -z "${LVM_SIZE:-}" ]; then
+        bootstrap_dialog --title "LVM Size" --inputbox "Please enter a size of LVM partition for OS and swap (combined) in GB.\n" 8 60
+        LVM_SIZE="$dialog_result"
     fi
 
     if [ -z "${SWAP_SIZE:-}" ]; then
@@ -126,7 +126,7 @@ preinstall() {
 partition_lvm_zfs() {
     echo "${green}Setting up partitions${reset}"
     # calculate end of our OS partition
-    OS_END="$(echo "1551+(${OS_SIZE}*1024)" | bc)MiB"
+    OS_END="$(echo "1551+(${LVM_SIZE}*1024)" | bc)MiB"
     # create partitions
     sgdisk --zap-all ${INSTALL_DISK}
     # grub
@@ -136,7 +136,7 @@ partition_lvm_zfs() {
     # boot
     sgdisk --new=3:0:+5G -c 3:"boot" -t 3:8309 ${INSTALL_DISK}
     # data
-    sgdisk --new=4:0:+${OS_SIZE}G -c 4:"system" -t 4:8309 ${INSTALL_DISK}
+    sgdisk --new=4:0:+${LVM_SIZE}G -c 4:"system" -t 4:8309 ${INSTALL_DISK}
 	# zfs
 	sgdisk --new:5:0:0 -c 5:"dpool" -t 5:bf01 ${INSTALL_DISK}
 
