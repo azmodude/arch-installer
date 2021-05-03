@@ -34,7 +34,7 @@ systemctl enable zfs-import.target
 systemctl enable zfs-mount.service
 systemctl enable zfs.target
 # automatically load keys on startup
-systemctl enable zfs-load-key.service
+systemctl enable zfs-load-key@dpool.service
 # enable monthly scrubbing
 systemctl enable zfs-scrub@dpool.timer
 
