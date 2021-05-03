@@ -121,6 +121,7 @@ preinstall() {
     reflector --verbose --latest 15 --sort rate --protocol https \
         --country DE --country NL --save /etc/pacman.d/mirrorlist \
         --save /etc/pacman.d/mirrorlist
+    sudo modprobe dm_mod zfs
 }
 
 partition_lvm_zfs() {
