@@ -165,7 +165,7 @@ partition_lvm_zfs() {
         -o ashift=12 \
         -o autotrim=on \
         -O encryption=aes-256-gcm \
-        -O keylocation="file:///etc/zfskey_dpool_${HOSTNAME_FQDN}" \
+        -O keylocation="file:///etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" \
         -O keyformat=hex -O acltype=posixacl -O compression=zstd \
         -O dnodesize=auto -O normalization=formD -O relatime=on \
         -O xattr=sa -O canmount=off -O mountpoint=/ dpool \
