@@ -142,6 +142,12 @@ partition_lvm_zfs() {
 
     # give udev some time to create the new symlinks
     sleep 2
+    # create boot luks encrypted partition
+    echo -n "${LUKS_PASSPHRASE}" |
+        cryptsetup -v --type luks1 --cipher aes-xts-plain64 \
+            --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
+    echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part3" crypt-boot
+    LUKS_PARTITION_UUID_BOOT=$(cryptsetup luksUUID "${INSTALL_DISK}-part3")
     # create OS luks encrypted partition
     echo -n "${LUKS_PASSPHRASE}" |
         cryptsetup -v --type luks2 --cipher aes-xts-plain64 \
