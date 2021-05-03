@@ -109,7 +109,7 @@ preinstall() {
     # install needed stuff for install
     echo "${green}Installing necessary packages${reset}"
     pacman -Sy --needed --noconfirm parted util-linux dialog bc dosfstools \
-        arch-install-scripts xfsprogs lvm2 zfs-linux zfs-utils
+        arch-install-scripts xfsprogs lvm2 zfs-linux zfs-utils gptfdisk openssl
     # set keys to German
     loadkeys de
     # enable NTP
