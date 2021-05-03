@@ -128,19 +128,17 @@ partition_lvm_zfs() {
     # calculate end of our OS partition
     OS_END="$(echo "1551+(${OS_SIZE}*1024)" | bc)MiB"
     # create partitions
-    parted --script --align optimal "${INSTALL_DISK}" \
-        mklabel gpt \
-        mkpart BIOS_GRUB 1MiB 2MIB \
-        set 1 bios_grub on \
-        mkpart ESP fat32 2MiB 551MiB \
-        set 2 esp on \
-        mkpart boot 551MiB 1551MiB \
-        mkpart primary 1551MiB "${OS_END}" \
-        mkpart primary "${OS_END}" 100%
-
-    # change ZFS partition to its correct type, default is 8300 for linux
-    # see https://en.wikipedia.org/wiki/GUID_Partition_Table for GUID ids
-    sfdisk --part-type "${INSTALL_DISK}" 5 6A898CC3-1DD2-11B2-99A6-080020736631
+    sgdisk --zap-all ${INSTALL_DISK}
+    # grub
+    sgdisk --new=1:0:+2M -c 1:"BIOS boot" -t 1:ef02 ${INSTALL_DISK}
+    # EFI
+    sgdisk --new=2:0:+512M -c 2:"EFI ESP" -t 2:ef00 ${INSTALL_DISK}
+    # boot
+    sgdisk --new=3:0:+5G -c 3:"boot" -t 3:8309 ${INSTALL_DISK}
+    # data
+    sgdisk --new=4:0:+${OS_SIZE}G -c 4:"system" -t 4:8309 ${INSTALL_DISK}
+	# zfs
+	sgdisk --new:5:0:0 -c 5:"dpool" -t5:bf01 ${INSTALL_DISK}
 
     # give udev some time to create the new symlinks
     sleep 2
