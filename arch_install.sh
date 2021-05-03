@@ -88,7 +88,8 @@ setup() {
 }
 
 preinstall() {
-    sudo modprobe dm_mod zfs
+    # load necessary modules incase arch decides to update the kernel mid-flight
+    modprobe dm_mod dm_crypt zfs
     # install needed stuff for install
     echo "${green}Installing necessary packages${reset}"
     pacman -Sy --needed --noconfirm parted util-linux dialog bc dosfstools \
