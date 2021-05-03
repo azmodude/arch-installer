@@ -163,9 +163,9 @@ partition_lvm_zfs() {
 
     # create a keyfile and save it to LUKS partition (later) for ZFS so it
     # unlocks without entering our password twice
-    openssl rand -hex -out "/etc/zfskey_dpool_${HOSTNAME_FQDN}" 32
-    chown root:root "/etc/zfskey_dpool_${HOSTNAME_FQDN}" &&
-        chmod 600 "/etc/zfskey_dpool_${HOSTNAME_FQDN}"
+    openssl rand -hex -out "/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" 32
+    chown root:root "/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" &&
+        chmod 600 "/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}"
 
     # setup ZFS pool
     zpool create -f \
@@ -224,10 +224,11 @@ install() {
     cp -r "${mydir}"/etc/** /mnt/etc
 
     # copy over our ZFS key
-    cp "/etc/zfskey_dpool_${HOSTNAME_FQDN}" \
-        "/mnt/etc/zfskey_dpool_${HOSTNAME_FQDN}"
-    chown root:root "/etc/zfskey_dpool_${HOSTNAME_FQDN}" && \
-        chmod 600 "/mnt/etc/zfskey_dpool_${HOSTNAME_FQDN}"
+	mkdir /mnt/etc/zfs
+    cp "/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" \
+        "/mnt/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}"
+    chown root:root "/mnt/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" && \
+        chmod 600 "/mnt/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}"
 
     echo "${green}Entering chroot${reset}"
     # enter chroot and perform initial configuration
