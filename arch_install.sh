@@ -124,7 +124,10 @@ partition_lvm_zfs() {
     # zfs
     sgdisk --new=5:0:0 -c 5:"dpool" -t 5:bf01 ${INSTALL_DISK}
 
-    # give udev some time to create the new symlinks
+    # try to re-read partitions for good measure...
+    partprobe
+
+    # ... still, give udev some time to create the new symlinks
     sleep 2
     # create boot luks encrypted partition
     echo -n "${LUKS_PASSPHRASE}" |
