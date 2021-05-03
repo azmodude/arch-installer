@@ -186,12 +186,12 @@ partition_lvm_zfs() {
     zfs create -o mountpoint=/var/lib/libvirt/images dpool/libvirt/images
 
     # setup boot partition
-    mkfs.ext4 -L boot "${INSTALL_DISK}-part3"
-    mkdir -p /mnt/boot && mount "${INSTALL_DISK}-part3" /mnt/boot
+    mkfs.ext4 -L boot /dev/mapper/crypt-boot
+    mkdir -p /mnt/boot && mount /dev/mapper/crypt-boot /mnt/boot
 
     # setup ESP
     mkfs.fat -F32 -n ESP "${INSTALL_DISK}-part2"
-    mkdir -p /mnt/boot/esp && mount "${INSTALL_DISK}-part2" /mnt/boot/esp
+    mkdir -p /mnt/efi && mount "${INSTALL_DISK}-part2" /mnt/efi
 }
 
 install() {
@@ -219,6 +219,16 @@ install() {
     # remove that line and one more (which is the comment) and re-reverse it
     tac /mnt/etc/fstab | sed -r '/.*\Wzfs\W.*/I,+1 d' >/tmp/fstab.tmp
     tac /tmp/fstab.tmp >/mnt/etc/fstab
+    # generate a keyfile to be embedded in initrd so we don't have to enter our password twice
+    mkdir /mnt/root/secrets && chown root:root /mnt/root/secrets && chmod 700 /mnt/root/secrets
+    openssl rand -hex -out /mnt/root/secrets/luks_boot_keyfile
+    chown root:root /mnt/root/secrets/luks_boot_keyfile
+    chmod 600 /mnt/root/secrets/luks_boot_keyfile
+    echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part3" /mnt/root/secrets/luks_boot_keyfile
+    openssl rand -hex -out /mnt/root/secrets/luks_system_keyfile
+    chown root:root /mnt/root/secrets/luks_system_keyfile
+    chmod 600 /mnt/root/secrets/luks_system_keyfile
+    echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part4" /mnt/root/secrets/luks_system_keyfile
 
     # copy pre-generated configuration files over
     cp -r "${mydir}"/etc/** /mnt/etc
@@ -238,6 +248,7 @@ install() {
         HOSTNAME="${HOSTNAME}" \
         HOSTNAME_FQDN="${HOSTNAME_FQDN}" \
         ROOT_PASSWORD="${ROOT_PASSWORD}" \
+        LUKS_PARTITION_UUID_BOOT="${LUKS_PARTITION_UUID_BOOT}" \
         LUKS_PARTITION_UUID_OS="${LUKS_PARTITION_UUID_OS}" \
         INSTALL_DISK="${INSTALL_DISK}" \
         IS_EFI="${IS_EFI}" \
