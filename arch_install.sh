@@ -87,30 +87,12 @@ setup() {
     esac
 }
 
-init_archzfs() {
-    pacman -Sy --noconfirm archlinux-keyring
-    pacman-key --populate archlinux &>/dev/null
-    pacman-key --keyserver keyserver.ubuntu.com -r DDF7DB817396A49B2A2723F7403BD972F75D9D76
-    pacman-key --lsign-key DDF7DB817396A49B2A2723F7403BD972F75D9D76
-    # eof is quoted so it will not expand $repo
-    cat <<-'EOF' >> /etc/pacman.conf
-			[archzfs]
-			Server = http://archzfs.com/$repo/$arch
-			Server = http://mirror.sum7.eu/archlinux/archzfs/$repo/$arch
-			Server = https://mirror.biocrafting.net/archlinux/archzfs/$repo/$arch
-			Server = https://mirror.in.themindsmaze.com/archzfs/$repo/$arch
-			[zfs-linux]
-            Server = http://kernels.archzfs.com/$repo/
-EOF
-    pacman -Sy --noconfirm
-}
-
 preinstall() {
     sudo modprobe dm_mod zfs
     # install needed stuff for install
     echo "${green}Installing necessary packages${reset}"
     pacman -Sy --needed --noconfirm parted util-linux dialog bc dosfstools \
-        arch-install-scripts xfsprogs lvm2 zfs-linux zfs-utils gptfdisk openssl
+        arch-install-scripts xfsprogs lvm2 gptfdisk openssl
     # set keys to German
     loadkeys de
     # enable NTP
@@ -291,7 +273,6 @@ fi
 
 echo "${green}Installation starting${reset}"
 
-init_archzfs
 preinstall
 setup
 partition_lvm_zfs
