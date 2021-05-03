@@ -138,7 +138,7 @@ partition_lvm_zfs() {
     # data
     sgdisk --new=4:0:+${OS_SIZE}G -c 4:"system" -t 4:8309 ${INSTALL_DISK}
 	# zfs
-	sgdisk --new:5:0:0 -c 5:"dpool" -t5:bf01 ${INSTALL_DISK}
+	sgdisk --new:5:0:0 -c 5:"dpool" -t 5:bf01 ${INSTALL_DISK}
 
     # give udev some time to create the new symlinks
     sleep 2
