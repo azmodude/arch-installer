@@ -245,7 +245,6 @@ install() {
     cp -r "${mydir}"/etc/** /mnt/etc
 
     # copy over our ZFS key
-	mkdir /mnt/etc/zfs
     cp "/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" \
         "/mnt/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}"
     chown root:root "/mnt/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" && \
