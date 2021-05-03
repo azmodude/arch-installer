@@ -36,7 +36,7 @@ setup() {
         HOSTNAME_FQDN="$dialog_result"
     fi
     if [ -z "${OS_SIZE:-}" ]; then
-        bootstrap_dialog --title "OS Size" --inputbox "Please enter a size of OS partition in GB.\n" 8 60
+        bootstrap_dialog --title "OS Size" --inputbox "Please enter a size of LVM partition in GB.\n" 8 60
         OS_SIZE="$dialog_result"
     fi
 
