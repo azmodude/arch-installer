@@ -13,7 +13,7 @@ build-iso:
 rename-iso:
 	$(eval FILE=$(shell find . -type f -regextype posix-extended -regex "./archlinux-[0-9\.]+-x86_64.iso"))
 	$(eval FILE_NO_EXT=$(shell basename $(FILE) .iso))
-	mv $(FILE) $(FILE_NO_EXT)-azmo-zfs.iso
+	-mv $(FILE) $(FILE_NO_EXT)-azmo-zfs.iso
 iso: build-iso move-iso rename-iso destroy
 clean: destroy up reload
 cleanssh: clean ssh
