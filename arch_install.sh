@@ -220,7 +220,7 @@ install() {
     FSPOINTS="resume=/dev/mapper/vg--system-swap root=/dev/mapper/vg--system-root"
     EXTRA_PACKAGES+=("xfsprogs")
     pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
-        systemd-resolvconf mkinitcpio \
+        systemd-resolvconf mkinitcpio zram-generator \
         linux linux-lts linux-firmware lvm2 grub cryptsetup terminus-font \
         apparmor zfs-linux zfs-linux-lts zfs-utils python-cffi git \
         neovim "${EXTRA_PACKAGES[@]}"
