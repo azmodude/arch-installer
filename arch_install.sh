@@ -249,9 +249,13 @@ install() {
 
     # copy over our ZFS key
     cp "/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" \
-        "/mnt/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}"
+        "/mnt/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" && \
+    cp "/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" \
+        "/root/zfskey_dpool_${HOSTNAME_FQDN}"
     chown root:root "/mnt/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" && \
         chmod 600 "/mnt/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}"
+    chown root:root "/root/zfskey_dpool_${HOSTNAME_FQDN}" && \
+        chmod 600 "/root/zfskey_dpool_${HOSTNAME_FQDN}"
 
     echo "${green}Entering chroot${reset}"
     # enter chroot and perform initial configuration
