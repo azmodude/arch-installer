@@ -230,15 +230,17 @@ install() {
     tac /mnt/etc/fstab | sed -r '/.*\Wzfs\W.*/I,+1 d' >/tmp/fstab.tmp
     tac /tmp/fstab.tmp >/mnt/etc/fstab
     # generate a keyfile to be embedded in initrd so we don't have to enter our password twice
-    mkdir /mnt/root/secrets && chown root:root /mnt/root/secrets && chmod 700 /mnt/root/secrets
-    openssl rand -hex -out /mnt/root/secrets/luks_boot_keyfile
-    chown root:root /mnt/root/secrets/luks_boot_keyfile
-    chmod 600 /mnt/root/secrets/luks_boot_keyfile
-    echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part3" /mnt/root/secrets/luks_boot_keyfile
-    openssl rand -hex -out /mnt/root/secrets/luks_system_keyfile
-    chown root:root /mnt/root/secrets/luks_system_keyfile
-    chmod 600 /mnt/root/secrets/luks_system_keyfile
-    echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part4" /mnt/root/secrets/luks_system_keyfile
+    mkdir /mnt/etc/luks && chown root:root /mnt/etc/luks && chmod 700 /mnt/etc/luks
+    openssl rand -hex -out /mnt/etc/luks/luks_boot_keyfile
+    chown root:root /mnt/etc/luks/luks_boot_keyfile
+    chmod 600 /mnt/etc/luks/luks_boot_keyfile
+    echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part3" \
+        /mnt/etc/luks/luks_boot_keyfile
+    openssl rand -hex -out /mnt/etc/luks/luks_system_keyfile
+    chown root:root /mnt/etc/luks/luks_system_keyfile
+    chmod 600 /mnt/etc/luks/luks_system_keyfile
+    echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part4" \
+        /mnt/etc/luks/luks_system_keyfile
 
     # copy pre-generated configuration files over
     cp -r "${mydir}"/etc/** /mnt/etc

@@ -51,8 +51,8 @@ git clone https://github.com/azmodude/arch-bootstrap /root/arch-bootstrap
 
 echo "${green}Generating /etc/crypttab${reset}"
 cat >/etc/crypttab <<END
-crypt-boot UUID=${LUKS_PARTITION_UUID_BOOT} /root/secrets/luks_boot_keyfile discard
-crypt-system UUID=${LUKS_PARTITION_UUID_OS} /root/secrets/luks_system_keyfile discard
+crypt-boot UUID=${LUKS_PARTITION_UUID_BOOT} /etc/luks/luks_boot_keyfile discard
+crypt-system UUID=${LUKS_PARTITION_UUID_OS} /etc/luks/luks_system_keyfile discard
 END
 # embed our crypttab in the initramfs for automatic unlock of volumes
 ln -s /etc/crypttab /etc/crypttab.initramfs
@@ -61,7 +61,7 @@ echo "${green}Generating mkinitcpio.conf${reset}"
 cat >/etc/mkinitcpio.conf <<END
 MODULES=(${MODULES})
 # We don't really need luks_boot_keyfile this early, here for good measure
-FILES=(/root/secrets/luks_system_keyfile /root/secrets/luks_boot_keyfile)
+FILES=(/etc/luks/luks_system_keyfile /etc/luks/luks_boot_keyfile)
 BINARIES=()
 HOOKS="base systemd autodetect modconf sd-vconsole keyboard block sd-encrypt lvm2 filesystems fsck"
 COMPRESSION=zstd
@@ -74,7 +74,8 @@ echo "root:${ROOT_PASSWORD}" | chpasswd
 echo "${green}Installing bootloader${reset}"
 sed -r -i "s/GRUB_CMDLINE_LINUX_DEFAULT=.*$/GRUB_CMDLINE_LINUX_DEFAULT=\"\"/" /etc/default/grub
 # cryptkey=... is kind of obsolete here, since sd-encrypt uses the embedded crypttab.initramfs
-sed -r -i "s/GRUB_CMDLINE_LINUX=.*$/GRUB_CMDLINE_LINUX=\"rd.luks.name=${LUKS_PARTITION_UUID_OS}=crypt-system cryptkey=rootfs:\/root\/secrets\/luks_system_keyfile rd.luks.options=discard ${FSPOINTS//\//\\/} consoleblank=120 apparmor=1 lsm=lockdown,yama,apparmor,bpf rw\"/" /etc/default/grub
+sed -r -i
+"s/GRUB_CMDLINE_LINUX=.*$/GRUB_CMDLINE_LINUX=\"cryptkey=rootfs:\/etc\/luks\/luks_system_keyfile ${FSPOINTS//\//\\/} consoleblank=120 apparmor=1 lsm=lockdown,yama,apparmor,bpf rw\"/" /etc/default/grub
 sed -r -i "s/^GRUB_DEFAULT=.*$/GRUB_DEFAULT=saved/" /etc/default/grub
 sed -r -i "s/^#GRUB_SAVEDEFAULT=true/GRUB_SAVEDEFAULT=true/" /etc/default/grub
 sed -r -i "s/^#GRUB_DISABLE_SUBMENU=.*/GRUB_DISABLE_SUBMENU=y/" /etc/default/grub
