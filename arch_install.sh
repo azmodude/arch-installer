@@ -147,10 +147,11 @@ partition_lvm_zfs() {
 
     # ... still, give udev some time to create the new symlinks
     sleep 2
-    # create boot luks encrypted partition
+    # create boot luks encrypted partition with lower iterations since grub is dog slow
     echo -n "${LUKS_PASSPHRASE}" |
-        cryptsetup -v --type luks1 --cipher aes-xts-plain64 \
-            --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
+        cryptsetup -v --type luks1 --pbkdf-force-iterations 1000 \
+        --cipher aes-xts-plain64 \
+        --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
     echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part3" crypt-boot
     LUKS_PARTITION_UUID_BOOT=$(cryptsetup luksUUID "${INSTALL_DISK}-part3")
     # create OS luks encrypted partition
