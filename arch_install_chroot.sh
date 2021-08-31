@@ -38,9 +38,6 @@ systemctl enable zfs-load-key@dpool.service
 # enable monthly scrubbing
 systemctl enable zfs-scrub@dpool.timer
 
-# bind mount /root into /home/root for better organization
-systemctl enable home-root.mount
-
 # setup systemd-resolved
 systemctl enable systemd-resolved.service
 

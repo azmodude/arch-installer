@@ -192,7 +192,6 @@ partition_lvm_zfs() {
         -R /mnt "${INSTALL_DISK}"-part5
     # setup generic ZFS datasets
     zfs create -o mountpoint=/home dpool/home
-    zfs create -o mountpoint=/root dpool/home/root
     chown root:root /mnt/root && chmod 700 /mnt/root
     zfs create -o mountpoint=/var/lib/docker dpool/docker
     zfs create -o mountpoint=/var/lib/libvirt dpool/libvirt
