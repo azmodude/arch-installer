@@ -1,8 +1,11 @@
 [Unit]
-Description=zpool scrub on %i
+Description=Scrub ZFS Pool
+Requires=zfs.target
+After=zfs.target
 
 [Service]
+Type=oneshot
 Nice=19
 IOSchedulingClass=idle
-KillSignal=SIGINT
-ExecStart=/usr/bin/zpool scrub %i
+ExecStartPre=-/usr/sbin/zpool scrub -s %i
+ExecStart=/usr/sbin/zpool scrub %i
