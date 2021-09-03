@@ -152,21 +152,21 @@ partition_lvm_btrfs() {
 
     mkfs.btrfs -L root /dev/mapper/vg--system-root
     mount /dev/mapper/vg--system-root /mnt
-    # convention: subvolumes used as mountpoints start with @
+    # convention: subvolumes used as top-level mountpoints start with @
     btrfs subvolume create /mnt/@
     btrfs subvolume create /mnt/@home
     btrfs subvolume create /mnt/@docker
-    btrfs subvolume create /mnt/@var-lib-libvirt-images
-    btrfs subvolume create /mnt/@var-log
+    btrfs subvolume create /mnt/@libvirt
+    btrfs subvolume create /mnt/@log
     umount /mnt
 
-    mount -o subvol=@,relatime,autodefrag \
+    mount -o subvol=@,noatime,autodefrag \
         /dev/mapper/vg--system-root /mnt
     # mount root btrfs into /mnt/btrfs-root and make it only root-accessible
     mkdir -p /mnt/mnt/btrfs-root && \
         chown root:root /mnt/mnt/btrfs-root && \
         chown 700 /mnt/mnt/btrfs-root
-    mount -o subvolid=5,relatime,autodefrag \
+    mount -o subvolid=5,noatime,autodefrag \
         /dev/mapper/vg--system-root /mnt/mnt/btrfs-root
 
     mkdir /mnt/{boot,home}
@@ -176,17 +176,17 @@ partition_lvm_btrfs() {
     btrfs property set /mnt/home compression zstd
 
     mkdir -p /mnt/var/log
-    mount -o subvol=@var-log,compress=none,relatime,autodefrag \
+    mount -o subvol=@log,compress=none,noatime,autodefrag \
         /dev/mapper/vg--system-root /mnt/var/log
 
     mkdir -p /mnt/var/lib/docker
-    mount -o subvol=@docker,compress=none,relatime,autodefrag \
+    mount -o subvol=@docker,compress=none,noatime,autodefrag \
         /dev/mapper/vg--system-root /mnt/var/lib/docker
-    mkdir -p /mnt/var/lib/libvirt/images
-    mount -o subvol=@var-lib-libvirt-images,compress=none,nodatacow,relatime,noautodefrag \
-        /dev/mapper/vg--system-root /mnt/var/lib/libvirt/images
+    mkdir -p /mnt/var/lib/libvirt
+    mount -o subvol=@vlibvirt,compress=none,nodatacow,noatime,noautodefrag \
+        /dev/mapper/vg--system-root /mnt/var/lib/libvirt
     # set NOCOW on that directory - I wish btrfs had per subvolume options...
-    chattr +C /mnt/var/lib/libvirt/images
+    chattr +C /mnt/var/lib/libvirt
 
     # create extra subvolumes so we don't clobber our / snapshots
     btrfs subvolume create /mnt/var/abs
