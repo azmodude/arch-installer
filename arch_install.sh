@@ -172,9 +172,6 @@ partition_lvm_btrfs() {
     mkdir /mnt/{boot,home}
     mount -o subvol=@home,relatime,autodefrag \
         /dev/mapper/vg--system-root /mnt/home
-    btrfs property set /mnt compression zstd
-    btrfs property set /mnt/home compression zstd
-
     mkdir -p /mnt/var/log
     mount -o subvol=@log,compress=none,noatime,autodefrag \
         /dev/mapper/vg--system-root /mnt/var/log
@@ -187,6 +184,12 @@ partition_lvm_btrfs() {
         /dev/mapper/vg--system-root /mnt/var/lib/libvirt
     # set NOCOW on that directory - I wish btrfs had per subvolume options...
     chattr +C /mnt/var/lib/libvirt
+
+    # enable compression where applicable
+    btrfs property set /mnt compression zstd
+    btrfs property set /mnt/home compression zstd
+    btrfs property set /mnt/var/lib/docker compression zstd
+    btrfs property set /mnt/var/log compression zstd
 
     # create extra subvolumes so we don't clobber our / snapshots
     btrfs subvolume create /mnt/var/abs
