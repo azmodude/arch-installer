@@ -24,9 +24,10 @@ systemctl enable apparmor.service
 
 # setup systemd-resolved
 systemctl enable systemd-resolved.service
-
 # setup zram and oomd
 systemctl enable systemd-zram-setup@zram0.service systemd-oomd.service
+# enable fstrim
+systemctl enable fstrim.timer
 
 echo "${green}Cloning arch-installer repository to /root${reset}"
 git clone https://github.com/azmodude/arch-installer /root/arch-installer
