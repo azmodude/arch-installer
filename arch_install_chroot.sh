@@ -37,9 +37,10 @@ systemctl enable zfs.target
 systemctl enable zfs-load-key@dpool.service
 # enable monthly scrubbing
 systemctl enable zfs-scrub@dpool.timer
-
 # setup systemd-resolved
 systemctl enable systemd-resolved.service
+# enable fstrim
+systemctl enable fstrim.timer
 
 # setup zram and oomd
 systemctl enable systemd-zram-setup@zram0.service systemd-oomd.service
