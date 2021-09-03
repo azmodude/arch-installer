@@ -158,6 +158,7 @@ partition_lvm_btrfs() {
     btrfs subvolume create /mnt/@docker
     btrfs subvolume create /mnt/@libvirt
     btrfs subvolume create /mnt/@log
+    btrfs subvolume create /mnt/@journal
     umount /mnt
 
     mount -o subvol=@,noatime,autodefrag \
@@ -175,6 +176,9 @@ partition_lvm_btrfs() {
     mkdir -p /mnt/var/log
     mount -o subvol=@log,compress=none,noatime,autodefrag \
         /dev/mapper/vg--system-root /mnt/var/log
+    mkdir -p /mnt/var/log/journal
+    mount -o subvol=@journal,compress=none,noatime,autodefrag \
+        /dev/mapper/vg--system-root /mnt/var/log/journal
 
     mkdir -p /mnt/var/lib/docker
     mount -o subvol=@docker,compress=none,noatime,autodefrag \
