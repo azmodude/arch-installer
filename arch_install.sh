@@ -183,7 +183,7 @@ partition_lvm_btrfs() {
     mount -o subvol=@docker,compress=none,noatime,autodefrag \
         /dev/mapper/vg--system-root /mnt/var/lib/docker
     mkdir -p /mnt/var/lib/libvirt
-    mount -o subvol=@vlibvirt,compress=none,nodatacow,noatime,noautodefrag \
+    mount -o subvol=@libvirt,compress=none,nodatacow,noatime,noautodefrag \
         /dev/mapper/vg--system-root /mnt/var/lib/libvirt
     # set NOCOW on that directory - I wish btrfs had per subvolume options...
     chattr +C /mnt/var/lib/libvirt
