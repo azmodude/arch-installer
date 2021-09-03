@@ -35,6 +35,10 @@ setup() {
         bootstrap_dialog --title "Hostname" --inputbox "Please enter a fqdn for this host.\n" 8 60
         HOSTNAME_FQDN="$dialog_result"
     fi
+    if [ -z "${LVM_SIZE:-}" ]; then
+        bootstrap_dialog --title "LVM Size" --inputbox "Please enter a size of LVM partition for OS and swap (combined) in GB.\n" 8 60
+        LVM_SIZE="$dialog_result"
+    fi
 
     if [ -z "${SWAP_SIZE:-}" ]; then
         bootstrap_dialog --title "Swap Size" --inputbox "Please enter a swap size in GB.\n" 8 60
@@ -104,7 +108,7 @@ preinstall() {
 partition_lvm_btrfs() {
     echo "${green}Setting up partitions${reset}"
     # calculate end of our OS partition
-    # OS_END="$(echo "1551+(${OS_SIZE}*1024)" | bc)MiB"
+    OS_END="$(echo "1551+(${LVM_SIZE}*1024)" | bc)MiB"
     # create partitions
     sgdisk --zap-all ${INSTALL_DISK}
     # grub
@@ -116,12 +120,17 @@ partition_lvm_btrfs() {
     # data
     sgdisk --new=4:0:0 -c 4:"system" -t 4:8309 ${INSTALL_DISK}
 
-    # give udev some time to create the new symlinks
+    # try to re-read partitions for good measure...
+    partprobe ${INSTALL_DISK}
+
+    # ... still, give udev some time to create the new symlinks
     sleep 2
-    # create boot luks encrypted partition
+    # create boot luks encrypted partition with forced iterations since grub is dog slow
+    # 200000 should be plenty for now, tho
     echo -n "${LUKS_PASSPHRASE}" |
-        cryptsetup -v --type luks1 --cipher aes-xts-plain64 \
-            --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
+        cryptsetup -v --type luks1 --pbkdf-force-iterations 200000 \
+        --cipher aes-xts-plain64 \
+        --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
     echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part3" crypt-boot
     LUKS_PARTITION_UUID_BOOT=$(cryptsetup luksUUID "${INSTALL_DISK}-part3")
     # create OS luks encrypted partition
@@ -190,7 +199,7 @@ partition_lvm_btrfs() {
 
     # setup ESP
     mkfs.fat -F32 -n ESP "${INSTALL_DISK}-part2"
-    mkdir -p /mnt/efi && mount "${INSTALL_DISK}-part2" /mnt/efi
+    mkdir -p /mnt/boot/efi && mount "${INSTALL_DISK}-part2" /mnt/boot/efi
 }
 
 install() {
@@ -207,21 +216,24 @@ install() {
     FSPOINTS="resume=/dev/mapper/vg--system-swap root=/dev/mapper/vg--system-root"
     EXTRA_PACKAGES+=("xfsprogs")
     pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
-        linux linux-lts linux-firmware systemd-swap lvm2 grub cryptsetup terminus-font \
+		systemd-resolvconf mkinitcpio zram-generator \
+        linux linux-lts linux-firmware lvm2 grub cryptsetup terminus-font \
         apparmor btrfs-progs python-cffi git \
         neovim "${EXTRA_PACKAGES[@]}"
     genfstab -U /mnt >>/mnt/etc/fstab
 
     # generate a keyfile to be embedded in initrd so we don't have to enter our password twice
-    mkdir /mnt/root/secrets && chown root:root /mnt/root/secrets && chmod 700 /mnt/root/secrets
-    openssl rand -hex -out /mnt/root/secrets/luks_boot_keyfile
-    chown root:root /mnt/root/secrets/luks_boot_keyfile
-    chmod 600 /mnt/root/secrets/luks_boot_keyfile
-    echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part3" /mnt/root/secrets/luks_boot_keyfile
-    openssl rand -hex -out /mnt/root/secrets/luks_system_keyfile
-    chown root:root /mnt/root/secrets/luks_system_keyfile
-    chmod 600 /mnt/root/secrets/luks_system_keyfile
-    echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part4" /mnt/root/secrets/luks_system_keyfile
+    mkdir /mnt/etc/luks && chown root:root /mnt/etc/luks && chmod 700 /mnt/etc/luks
+    openssl rand -hex -out /mnt/etc/luks/luks_boot_keyfile
+    chown root:root /mnt/etc/luks/luks_boot_keyfile
+    chmod 600 /mnt/etc/luks/luks_boot_keyfile
+    echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part3" \
+        /mnt/etc/luks/luks_boot_keyfile
+    openssl rand -hex -out /mnt/etc/luks/luks_system_keyfile
+    chown root:root /mnt/etc/luks/luks_system_keyfile
+    chmod 600 /mnt/etc/luks/luks_system_keyfile
+    echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part4" \
+        /mnt/etc/luks/luks_system_keyfile
 
     # copy pre-generated configuration files over
     cp -r "${mydir}"/etc/** /mnt/etc

@@ -3,3 +3,4 @@
 *.iso
 old-isos/*
 install/tmp/**
+.env.mk
