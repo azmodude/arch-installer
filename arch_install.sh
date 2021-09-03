@@ -152,6 +152,8 @@ partition_lvm_btrfs() {
 
     mkfs.btrfs -L root /dev/mapper/vg--system-root
     mount /dev/mapper/vg--system-root /mnt
+    # set compression early so all subvolumes inherit the default compression settings
+    btrfs property set /mnt compression zstd
     # convention: subvolumes used as top-level mountpoints start with @
     btrfs subvolume create /mnt/@
     btrfs subvolume create /mnt/@home
@@ -172,8 +174,6 @@ partition_lvm_btrfs() {
     mkdir /mnt/{boot,home}
     mount -o subvol=@home,relatime,autodefrag \
         /dev/mapper/vg--system-root /mnt/home
-    btrfs property set /mnt compression zstd
-    btrfs property set /mnt/home compression zstd
 
     mkdir -p /mnt/var/log
     mount -o subvol=@log,compress=none,noatime,autodefrag \
@@ -187,6 +187,8 @@ partition_lvm_btrfs() {
         /dev/mapper/vg--system-root /mnt/var/lib/libvirt
     # set NOCOW on that directory - I wish btrfs had per subvolume options...
     chattr +C /mnt/var/lib/libvirt
+    # disable compression
+    btrfs property set /mnt/var/lib/libvirt compression ""
 
     # create extra subvolumes so we don't clobber our / snapshots
     btrfs subvolume create /mnt/var/abs
