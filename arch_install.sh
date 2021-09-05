@@ -128,7 +128,7 @@ preinstall() {
 partition_lvm_zfs() {
     echo "${green}Setting up partitions${reset}"
     # calculate end of our OS partition
-    OS_END="$(echo "1551+(${LVM_SIZE}*1024)" | bc)MiB"
+    #OS_END="$(echo "1551+(${LVM_SIZE}*1024)" | bc)MiB"
     # create partitions
     sgdisk --zap-all ${INSTALL_DISK}
     # grub
