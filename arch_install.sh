@@ -178,11 +178,11 @@ partition_lvm_zfs() {
     LUKS_PARTITION_UUID_SWAP=$(cryptsetup luksUUID "${INSTALL_DISK}-part5")
 
     # create OS filesystem and swap
-    mkfs.xfs -L root ${INSTALL_DISK}-part4
-    mount ${INSTALL_DISK}-part4 /mnt
+    mkfs.xfs -L root /dev/mapper/crypt-system
+    mount /dev/mapper/crypt-system /mnt
 
-    mkswap ${INSTALL_DISK}-part5
-    swapon ${INSTALL_DISK}-part5
+    mkswap /dev/mapper/crypt-swap
+    swapon /dev/mapper/crypt-swap
 
     # create a keyfile and save it to LUKS partition (later) for ZFS so it
     # unlocks without entering our password twice
