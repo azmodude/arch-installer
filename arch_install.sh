@@ -35,9 +35,9 @@ setup() {
         bootstrap_dialog --title "Hostname" --inputbox "Please enter a fqdn for this host.\n" 8 60
         HOSTNAME_FQDN="$dialog_result"
     fi
-    if [ -z "${LVM_SIZE:-}" ]; then
-        bootstrap_dialog --title "LVM Size" --inputbox "Please enter a size of LVM partition for OS and swap (combined) in GB.\n" 8 60
-        LVM_SIZE="$dialog_result"
+    if [ -z "${OS_SIZE:-}" ]; then
+        bootstrap_dialog --title "OS Size" --inputbox "Please enter a size of partition for OS in GB.\n" 8 60
+        OS_SIZE="$dialog_result"
     fi
 
     if [ -z "${SWAP_SIZE:-}" ]; then
@@ -108,7 +108,7 @@ preinstall() {
 partition_lvm_btrfs() {
     echo "${green}Setting up partitions${reset}"
     # calculate end of our OS partition
-    OS_END="$(echo "1551+(${LVM_SIZE}*1024)" | bc)MiB"
+    #OS_END="$(echo "1551+(${LVM_SIZE}*1024)" | bc)MiB"
     # create partitions
     sgdisk --zap-all ${INSTALL_DISK}
     # grub
@@ -116,9 +116,11 @@ partition_lvm_btrfs() {
     # EFI
     sgdisk --new=2:0:+512M -c 2:"EFI ESP" -t 2:ef00 ${INSTALL_DISK}
     # boot
-    sgdisk --new=3:0:+5G -c 3:"boot" -t 3:8309 ${INSTALL_DISK}
-    # data
-    sgdisk --new=4:0:0 -c 4:"system" -t 4:8309 ${INSTALL_DISK}
+    sgdisk --new=3:0:+5G -c 3:"boot" -t 3:8300 ${INSTALL_DISK}
+    # root
+    sgdisk --new=4:0:+${OS_SIZE}G -c 4:"system" -t 4:8300 ${INSTALL_DISK}
+    # swap
+    sgdisk --new=5:0:+${SWAP_SIZE}G -c 5:"swap" -t 5:8200 ${INSTALL_DISK}
 
     # try to re-read partitions for good measure...
     partprobe ${INSTALL_DISK}
@@ -127,28 +129,38 @@ partition_lvm_btrfs() {
     sleep 2
     # create boot luks encrypted partition with forced iterations since grub is dog slow
     # 200000 should be plenty for now, tho
+    #echo -n "${LUKS_PASSPHRASE}" |
+    #    cryptsetup -v --type luks1 --pbkdf-force-iterations 200000 \
+    #    --cipher aes-xts-plain64 \
+    #    --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
     echo -n "${LUKS_PASSPHRASE}" |
-        cryptsetup -v --type luks1 --pbkdf-force-iterations 200000 \
+        cryptsetup -v --type luks1 \
         --cipher aes-xts-plain64 \
         --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
-    echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part3" crypt-boot
+    echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part3" \
+        crypt-boot
     LUKS_PARTITION_UUID_BOOT=$(cryptsetup luksUUID "${INSTALL_DISK}-part3")
     # create OS luks encrypted partition
     echo -n "${LUKS_PASSPHRASE}" |
         cryptsetup -v --type luks2 --cipher aes-xts-plain64 \
             --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part4"
-    echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part4" crypt-system
+    echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part4" \
+        crypt-system
     LUKS_PARTITION_UUID_OS=$(cryptsetup luksUUID "${INSTALL_DISK}-part4")
+    # create swap encrypted partition
+    echo -n "${LUKS_PASSPHRASE}" |
+        cryptsetup -v --type luks2 --cipher aes-xts-plain64 \
+            --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part5"
+    echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part5" \
+        crypt-swap
+    LUKS_PARTITION_UUID_SWAP=$(cryptsetup luksUUID "${INSTALL_DISK}-part5")
 
-    # setup lvm for the OS
-    pvcreate /dev/mapper/crypt-system
-    vgcreate vg-system /dev/mapper/crypt-system
-    lvcreate -L "${SWAP_SIZE}"G vg-system -n swap
-    lvcreate -l 100%FREE vg-system -n root
+    # create OS filesystem and swap
+    mkfs.xfs -L root /dev/mapper/crypt-system
+    mount /dev/mapper/crypt-system /mnt
 
-    # create swap
-    mkswap /dev/mapper/vg--system-swap
-    swapon /dev/mapper/vg--system-swap
+    mkswap /dev/mapper/crypt-swap
+    swapon /dev/mapper/crypt-swap
 
     mkfs.btrfs -L root /dev/mapper/vg--system-root
     mount /dev/mapper/vg--system-root /mnt
@@ -241,6 +253,11 @@ install() {
     chmod 600 /mnt/etc/luks/luks_system_keyfile
     echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part4" \
         /mnt/etc/luks/luks_system_keyfile
+    openssl rand -hex -out /mnt/etc/luks/luks_swap_keyfile
+    chown root:root /mnt/etc/luks/luks_swap_keyfile
+    chmod 600 /mnt/etc/luks/luks_swap_keyfile
+    echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part5" \
+        /mnt/etc/luks/luks_swap_keyfile
 
     # copy pre-generated configuration files over
     cp -r "${mydir}"/etc/** /mnt/etc
@@ -255,6 +272,7 @@ install() {
         ROOT_PASSWORD="${ROOT_PASSWORD}" \
         LUKS_PARTITION_UUID_BOOT="${LUKS_PARTITION_UUID_BOOT}" \
         LUKS_PARTITION_UUID_OS="${LUKS_PARTITION_UUID_OS}" \
+        LUKS_PARTITION_UUID_SWAP="${LUKS_PARTITION_UUID_SWAP}" \
         INSTALL_DISK="${INSTALL_DISK}" \
         IS_EFI="${IS_EFI}" \
         FSPOINTS="${FSPOINTS}" \
@@ -269,6 +287,7 @@ function tear_down() {
     swapoff -a
     umount -R /mnt
     cryptsetup close crypt-boot
+    cryptsetup close crypt-swap
     cryptsetup close crypt-system
 }
 
