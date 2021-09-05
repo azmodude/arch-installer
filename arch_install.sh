@@ -151,8 +151,12 @@ partition_lvm_zfs() {
     sleep 2
     # create boot luks encrypted partition with forced iterations since grub is dog slow
     # 200000 should be plenty for now, tho
+    #echo -n "${LUKS_PASSPHRASE}" |
+    #    cryptsetup -v --type luks1 --pbkdf-force-iterations 200000 \
+    #    --cipher aes-xts-plain64 \
+    #    --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
     echo -n "${LUKS_PASSPHRASE}" |
-        cryptsetup -v --type luks1 \ #--pbkdf-force-iterations 200000 \
+        cryptsetup -v --type luks1 \
         --cipher aes-xts-plain64 \
         --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
     echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part3" \
