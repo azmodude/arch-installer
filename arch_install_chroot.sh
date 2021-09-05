@@ -55,6 +55,7 @@ END
 echo "${green}Generating initrd${reset}"
 mkinitcpio -p linux
 mkinitcpio -p linux-lts
+mkinitcpio -p linux-zen
 echo "${green}Setting root password${reset}"
 echo "root:${ROOT_PASSWORD}" | chpasswd
 echo "${green}Installing bootloader${reset}"
