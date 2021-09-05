@@ -199,7 +199,7 @@ partition_lvm_zfs() {
         -O keyformat=hex -O acltype=posixacl -O compression=zstd \
         -O dnodesize=auto -O normalization=formD -O relatime=on \
         -O xattr=sa -O canmount=off -O mountpoint=/ dpool \
-        -R /mnt "${INSTALL_DISK}"-part5
+        -R /mnt "${INSTALL_DISK}"-part6
     # setup generic ZFS datasets
     zfs create -o mountpoint=/home dpool/home
     chown root:root /mnt/root && chmod 700 /mnt/root
