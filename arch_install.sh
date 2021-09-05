@@ -156,14 +156,11 @@ partition_lvm_btrfs() {
     LUKS_PARTITION_UUID_SWAP=$(cryptsetup luksUUID "${INSTALL_DISK}-part5")
 
     # create OS filesystem and swap
-    mkfs.xfs -L root /dev/mapper/crypt-system
+    mkfs.btrfs -L root /dev/mapper/crypt-system
     mount /dev/mapper/crypt-system /mnt
-
     mkswap /dev/mapper/crypt-swap
     swapon /dev/mapper/crypt-swap
 
-    mkfs.btrfs -L root /dev/mapper/vg--system-root
-    mount /dev/mapper/vg--system-root /mnt
     # convention: subvolumes used as top-level mountpoints start with @
     btrfs subvolume create /mnt/@
     btrfs subvolume create /mnt/@home
@@ -236,7 +233,7 @@ install() {
     EXTRA_PACKAGES+=("xfsprogs")
     pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
 		systemd-resolvconf mkinitcpio zram-generator \
-        linux linux-lts linux-firmware lvm2 grub cryptsetup terminus-font \
+        linux linux-lts linux-zen linux-firmware lvm2 grub cryptsetup terminus-font \
         apparmor btrfs-progs python-cffi git \
         neovim "${EXTRA_PACKAGES[@]}"
     genfstab -U /mnt >>/mnt/etc/fstab
