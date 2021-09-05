@@ -297,6 +297,8 @@ function tear_down() {
     swapoff -a
     zpool export dpool
     umount -R /mnt
+    cryptsetup close crypt-boot
+    cryptsetup close crypt-swap
     cryptsetup close crypt-system
 }
 
