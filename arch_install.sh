@@ -137,10 +137,10 @@ partition_lvm_zfs() {
     sgdisk --new=2:0:+512M -c 2:"EFI ESP" -t 2:ef00 ${INSTALL_DISK}
     # boot
     sgdisk --new=3:0:+5G -c 3:"boot" -t 3:8300 ${INSTALL_DISK}
-    # root
-    sgdisk --new=4:0:+${OS_SIZE}G -c 4:"system" -t 4:8300 ${INSTALL_DISK}
     # swap
-    sgdisk --new=5:0:+${SWAP_SIZE}G -c 5:"swap" -t 5:8200 ${INSTALL_DISK}
+    sgdisk --new=4:0:+${SWAP_SIZE}G -c 4:"swap" -t 4:8200 ${INSTALL_DISK}
+    # root
+    sgdisk --new=5:0:+${OS_SIZE}G -c 5:"system" -t 5:8300 ${INSTALL_DISK}
     # zfs
     sgdisk --new=6:0:0 -c 6:"dpool" -t 6:bf01 ${INSTALL_DISK}
 
@@ -162,20 +162,20 @@ partition_lvm_zfs() {
     echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part3" \
         crypt-boot
     LUKS_PARTITION_UUID_BOOT=$(cryptsetup luksUUID "${INSTALL_DISK}-part3")
-    # create OS luks encrypted partition
+    # create swap encrypted partition
     echo -n "${LUKS_PASSPHRASE}" |
         cryptsetup -v --type luks2 --cipher aes-xts-plain64 \
             --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part4"
     echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part4" \
-        crypt-system
-    LUKS_PARTITION_UUID_OS=$(cryptsetup luksUUID "${INSTALL_DISK}-part4")
-    # create swap encrypted partition
+        crypt-swap
+    LUKS_PARTITION_UUID_SWAP=$(cryptsetup luksUUID "${INSTALL_DISK}-part4")
+    # create OS luks encrypted partition
     echo -n "${LUKS_PASSPHRASE}" |
         cryptsetup -v --type luks2 --cipher aes-xts-plain64 \
             --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part5"
     echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part5" \
-        crypt-swap
-    LUKS_PARTITION_UUID_SWAP=$(cryptsetup luksUUID "${INSTALL_DISK}-part5")
+        crypt-system
+    LUKS_PARTITION_UUID_OS=$(cryptsetup luksUUID "${INSTALL_DISK}-part5")
 
     # create OS filesystem and swap
     mkfs.xfs -L root /dev/mapper/crypt-system
@@ -227,7 +227,7 @@ install() {
         EXTRA_PACKAGES=("amd-ucode")
         MODULES="zfs amdgpu"
     fi
-    FSPOINTS="resume=/dev/mapper/vg--system-swap root=/dev/mapper/vg--system-root"
+    FSPOINTS="resume=/dev/mapper/crypt-swap root=/dev/mapper/crypt-system"
     EXTRA_PACKAGES+=("xfsprogs")
     pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
         systemd-resolvconf mkinitcpio zram-generator \
