@@ -111,7 +111,7 @@ preinstall() {
     # install needed stuff for install
     echo "${green}Installing necessary packages${reset}"
     pacman -Sy --needed --noconfirm parted util-linux dialog bc dosfstools \
-        arch-install-scripts xfsprogs lvm2 gptfdisk openssl
+        arch-install-scripts xfsprogs gptfdisk openssl
     # set keys to German
     loadkeys de
     # enable NTP
@@ -125,7 +125,7 @@ preinstall() {
         --save /etc/pacman.d/mirrorlist
 }
 
-partition_lvm_zfs() {
+partition_zfs() {
     echo "${green}Setting up partitions${reset}"
     # calculate end of our OS partition
     #OS_END="$(echo "1551+(${LVM_SIZE}*1024)" | bc)MiB"
@@ -231,7 +231,7 @@ install() {
     EXTRA_PACKAGES+=("xfsprogs")
     pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
         systemd-resolvconf mkinitcpio zram-generator \
-        linux linux-lts linux-zen linux-firmware lvm2 grub cryptsetup terminus-font \
+        linux linux-lts linux-zen linux-firmware grub cryptsetup terminus-font \
         apparmor zfs-linux zfs-linux-lts zfs-linux-zen zfs-utils python-cffi git \
         neovim "${EXTRA_PACKAGES[@]}"
     genfstab -U /mnt >>/mnt/etc/fstab
@@ -322,7 +322,7 @@ echo "${green}Installation starting${reset}"
 init_archzfs
 preinstall
 setup
-partition_lvm_zfs
+partition_zfs
 install
 tear_down
 
