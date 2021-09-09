@@ -232,7 +232,7 @@ install() {
     pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
         systemd-resolvconf mkinitcpio zram-generator \
         linux linux-lts linux-zen linux-firmware grub cryptsetup terminus-font \
-        apparmor zfs-linux zfs-linux-lts zfs-linux-zen zfs-utils python-cffi git \
+        apparmor python-cffi git \
         neovim "${EXTRA_PACKAGES[@]}"
     genfstab -U /mnt >>/mnt/etc/fstab
     # genfstab puts our zfs datasets into /ec/fstab, which causes all sorts
@@ -263,6 +263,7 @@ install() {
     cp -r "${mydir}"/etc/** /mnt/etc
 
     # copy over our ZFS key
+    mkdir /mnt/etc/zfs
     cp "/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" \
         "/mnt/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" && \
     cp "/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" \

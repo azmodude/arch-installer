@@ -21,6 +21,9 @@ END
 # get and lsign archzfs keys
 pacman-key --keyserver keyserver.ubuntu.com -r DDF7DB817396A49B2A2723F7403BD972F75D9D76
 pacman-key --lsign-key DDF7DB817396A49B2A2723F7403BD972F75D9D76
+# force install zfs, chances are one kernel is working afterwards
+pacman -Sy && pacman -Sd --noconfirm --needed \
+    zfs-linux zfs-linux-lts zfs-linux-zen zfs-utils
 
 echo "${green}Enabling AppArmor${reset}"
 sed -r -i 's/^#(write-cache)$/\1/' /etc/apparmor/parser.conf
@@ -65,7 +68,7 @@ MODULES=(${MODULES})
 # We don't really need luks_boot_keyfile this early, here for good measure
 FILES=(/etc/luks/luks_boot_keyfile /etc/luks/luks_system_keyfile /etc/luks/luks_swap_keyfile)
 BINARIES=()
-HOOKS="base systemd autodetect modconf sd-vconsole keyboard block sd-encrypt lvm2 filesystems fsck"
+HOOKS="base systemd autodetect modconf sd-vconsole keyboard block sd-encrypt filesystems fsck"
 COMPRESSION=zstd
 END
 echo "${green}Generating initrd${reset}"
