@@ -49,7 +49,7 @@ MODULES=(${MODULES})
 # We don't really need luks_boot_keyfile this early, here for good measure
 FILES=(/etc/luks/luks_boot_keyfile /etc/luks/luks_system_keyfile /etc/luks/luks_swap_keyfile)
 BINARIES=()
-HOOKS="base systemd autodetect modconf sd-vconsole keyboard block sd-encrypt lvm2 filesystems fsck"
+HOOKS="base systemd autodetect modconf sd-vconsole keyboard block sd-encrypt filesystems fsck"
 COMPRESSION=zstd
 END
 echo "${green}Generating initrd${reset}"
