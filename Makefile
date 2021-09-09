@@ -26,7 +26,6 @@ destroy:
 	vagrant destroy -f
 
 test-vm-install:
-	-sudo virsh --connect qemu:///system undefine --domain archtest --remove-all-storage
 	sudo virt-install --name=archtest --vcpus=4 \
         --boot loader=//usr/share/OVMF/OVMF_CODE.fd \
         --memory=2048 --cdrom=${ISO} --disk \
@@ -38,7 +37,9 @@ test-vm:
         --memory=2048 --disk ${IMAGE},bus=sata --os-variant=archlinux
 destroy-vm:
 	-sudo virsh --connect qemu:///system destroy archtest
-test-install: destroy-vm test-vm-install
+rm-vm:
+	-sudo virsh --connect qemu:///system undefine --domain archtest --remove-all-storage
+test-install: destroy-vm rm-vm test-vm-install
 test: destroy-vm test-vm
 
 clean: destroy up reload
