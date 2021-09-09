@@ -35,10 +35,6 @@ setup() {
         bootstrap_dialog --title "Hostname" --inputbox "Please enter a fqdn for this host.\n" 8 60
         HOSTNAME_FQDN="$dialog_result"
     fi
-    if [ -z "${OS_SIZE:-}" ]; then
-        bootstrap_dialog --title "OS Size" --inputbox "Please enter a size of partition for OS in GB.\n" 8 60
-        OS_SIZE="$dialog_result"
-    fi
 
     if [ -z "${SWAP_SIZE:-}" ]; then
         bootstrap_dialog --title "Swap Size" --inputbox "Please enter a swap size in GB.\n" 8 60
@@ -120,7 +116,7 @@ partition_lvm_btrfs() {
     # swap
     sgdisk --new=4:0:+${SWAP_SIZE}G -c 4:"swap" -t 4:8200 ${INSTALL_DISK}
     # root
-    sgdisk --new=5:0:+${OS_SIZE}G -c 5:"system" -t 5:8300 ${INSTALL_DISK}
+    sgdisk --new=5:0:0 -c 5:"system" -t 5:8300 ${INSTALL_DISK}
 
     # try to re-read partitions for good measure...
     partprobe ${INSTALL_DISK}
