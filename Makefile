@@ -9,8 +9,10 @@ reload:
 	vagrant reload
 ssh:
 	TERM=xterm-256color vagrant ssh
-move-iso:
+move-iso-zfs:
 	-mv archlinux-*-azmo-zfs.iso old-isos
+move-iso:
+	-mv archlinux-*-azmo.iso old-isos
 build-iso:
 	VAGRANT_VAGRANTFILE=./Vagrantfile.archiso vagrant up
 rename-iso-zfs:
