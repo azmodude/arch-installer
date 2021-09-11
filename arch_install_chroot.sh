@@ -21,9 +21,6 @@ END
 # get and lsign archzfs keys
 pacman-key --keyserver keyserver.ubuntu.com -r DDF7DB817396A49B2A2723F7403BD972F75D9D76
 pacman-key --lsign-key DDF7DB817396A49B2A2723F7403BD972F75D9D76
-# force install zfs, chances are one kernel is working afterwards
-pacman -Sy && pacman -Sd --noconfirm --needed \
-    zfs-linux zfs-linux-lts zfs-linux-zen zfs-utils
 
 echo "${green}Enabling AppArmor${reset}"
 sed -r -i 's/^#(write-cache)$/\1/' /etc/apparmor/parser.conf
