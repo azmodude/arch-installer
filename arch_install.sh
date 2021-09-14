@@ -15,6 +15,10 @@ bootstrap_dialog() {
         exit 1
     fi
 }
+bootstrap_dialog_yesno() {
+    dialog_result=$(dialog --clear --stdout --backtitle "Arch bootstrapper" --no-shadow "$@" 2>/dev/null)
+    dialog_result=$?
+}
 bootstrap_dialog_non_mandatory() {
     dialog_result=$(dialog --clear --stdout --backtitle "Arch bootstrapper" --no-shadow "$@" 2>/dev/null)
 }
@@ -37,7 +41,7 @@ setup() {
     fi
 
     if [ -z "${ENCRYPTED_BOOT:-}" ]; then
-        bootstrap_dialog --title "Encrypted /boot" --yesno "Encrypt boot?\n" 8 60
+        bootstrap_dialog_yesno --title "Encrypted /boot" --yesno "Encrypt boot?\n" 8 60
         ENCRYPTED_BOOT="${dialog_result}"
     fi
 
