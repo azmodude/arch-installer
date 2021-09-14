@@ -214,17 +214,17 @@ install() {
         openssl rand -hex -out /mnt/etc/luks/luks_boot_keyfile
         chown root:root /mnt/etc/luks/luks_boot_keyfile
         chmod 600 /mnt/etc/luks/luks_boot_keyfile
-        echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part3" \
+        echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part2" \
             /mnt/etc/luks/luks_boot_keyfile
         openssl rand -hex -out /mnt/etc/luks/luks_system_keyfile
         chown root:root /mnt/etc/luks/luks_system_keyfile
         chmod 600 /mnt/etc/luks/luks_system_keyfile
-        echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part4" \
+        echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part3" \
             /mnt/etc/luks/luks_system_keyfile
         openssl rand -hex -out /mnt/etc/luks/luks_swap_keyfile
         chown root:root /mnt/etc/luks/luks_swap_keyfile
         chmod 600 /mnt/etc/luks/luks_swap_keyfile
-        echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part5" \
+        echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part4" \
             /mnt/etc/luks/luks_swap_keyfile
     fi
 
