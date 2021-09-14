@@ -35,6 +35,10 @@ setup() {
         bootstrap_dialog --title "Hostname" --inputbox "Please enter a fqdn for this host.\n" 8 60
         HOSTNAME_FQDN="$dialog_result"
     fi
+    if [-z "${ENCRYPTED_BOOT}" ]; then
+        bootstrap_dialog --title "Encrypted /boot" --yesno "Encrypt boot?\n" 8 60
+        ENCRYPTED_BOOT="${dialog_result}"
+    fi
     if [ -z "${OS_SIZE:-}" ]; then
         bootstrap_dialog --title "OS Size" --inputbox "Please enter a size of partition for OS in GB.\n" 8 60
         OS_SIZE="$dialog_result"
@@ -87,27 +91,9 @@ setup() {
     esac
 }
 
-init_archzfs() {
-    pacman -Sy --noconfirm archlinux-keyring
-    pacman-key --populate archlinux &>/dev/null
-    pacman-key --keyserver keyserver.ubuntu.com -r DDF7DB817396A49B2A2723F7403BD972F75D9D76
-    pacman-key --lsign-key DDF7DB817396A49B2A2723F7403BD972F75D9D76
-    # eof is quoted so it will not expand $repo
-    cat <<-'EOF' >> /etc/pacman.conf
-			[archzfs]
-			Server = http://archzfs.com/$repo/$arch
-			Server = http://mirror.sum7.eu/archlinux/archzfs/$repo/$arch
-			Server = https://mirror.biocrafting.net/archlinux/archzfs/$repo/$arch
-			Server = https://mirror.in.themindsmaze.com/archzfs/$repo/$arch
-			[zfs-linux]
-            Server = http://kernels.archzfs.com/$repo/
-EOF
-    pacman -Sy --noconfirm
-}
-
 preinstall() {
     # load necessary modules incase arch decides to update the kernel mid-flight
-    modprobe dm_mod dm_crypt zfs
+    modprobe dm_mod dm_crypt
     # install needed stuff for install
     echo "${green}Installing necessary packages${reset}"
     pacman -Sy --needed --noconfirm parted util-linux dialog bc dosfstools \
@@ -125,24 +111,20 @@ preinstall() {
         --save /etc/pacman.d/mirrorlist
 }
 
-partition_zfs() {
+partition() {
     echo "${green}Setting up partitions${reset}"
     # calculate end of our OS partition
     #OS_END="$(echo "1551+(${LVM_SIZE}*1024)" | bc)MiB"
     # create partitions
     sgdisk --zap-all ${INSTALL_DISK}
-    # grub
-    sgdisk --new=1:0:+2M -c 1:"BIOS boot" -t 1:ef02 ${INSTALL_DISK}
     # EFI
-    sgdisk --new=2:0:+512M -c 2:"EFI ESP" -t 2:ef00 ${INSTALL_DISK}
+    sgdisk --new=1:0:+512M -c 1:"EFI ESP" -t 1:ef00 ${INSTALL_DISK}
     # boot
-    sgdisk --new=3:0:+5G -c 3:"boot" -t 3:8300 ${INSTALL_DISK}
+    sgdisk --new=2:0:+5G -c 2:"boot" -t 2:8300 ${INSTALL_DISK}
     # swap
-    sgdisk --new=4:0:+${SWAP_SIZE}G -c 4:"swap" -t 4:8200 ${INSTALL_DISK}
+    sgdisk --new=3:0:+${SWAP_SIZE}G -c 3:"swap" -t 3:8200 ${INSTALL_DISK}
     # root
-    sgdisk --new=5:0:+${OS_SIZE}G -c 5:"system" -t 5:8300 ${INSTALL_DISK}
-    # zfs
-    sgdisk --new=6:0:0 -c 6:"dpool" -t 6:bf01 ${INSTALL_DISK}
+    sgdisk --new=4:0:+${OS_SIZE}G -c 4:"system" -t 4:8300 ${INSTALL_DISK}
 
     # try to re-read partitions for good measure...
     partprobe ${INSTALL_DISK}
@@ -155,27 +137,29 @@ partition_zfs() {
     #    cryptsetup -v --type luks1 --pbkdf-force-iterations 200000 \
     #    --cipher aes-xts-plain64 \
     #    --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
-    echo -n "${LUKS_PASSPHRASE}" |
-        cryptsetup -v --type luks1 \
-        --cipher aes-xts-plain64 \
-        --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
-    echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part3" \
-        crypt-boot
-    LUKS_PARTITION_UUID_BOOT=$(cryptsetup luksUUID "${INSTALL_DISK}-part3")
+    if [[ "${ENCRYPTED_BOOT}" -eq 0 ]]; then
+        echo -n "${LUKS_PASSPHRASE}" |
+            cryptsetup -v --type luks1 \
+            --cipher aes-xts-plain64 \
+            --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part2"
+        echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part2" \
+            crypt-boot
+        LUKS_PARTITION_UUID_BOOT=$(cryptsetup luksUUID "${INSTALL_DISK}-part2")
+    fi
     # create swap encrypted partition
+    echo -n "${LUKS_PASSPHRASE}" |
+        cryptsetup -v --type luks2 --cipher aes-xts-plain64 \
+            --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
+    echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part3" \
+        crypt-swap
+    LUKS_PARTITION_UUID_SWAP=$(cryptsetup luksUUID "${INSTALL_DISK}-part3")
+    # create OS luks encrypted partition
     echo -n "${LUKS_PASSPHRASE}" |
         cryptsetup -v --type luks2 --cipher aes-xts-plain64 \
             --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part4"
     echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part4" \
-        crypt-swap
-    LUKS_PARTITION_UUID_SWAP=$(cryptsetup luksUUID "${INSTALL_DISK}-part4")
-    # create OS luks encrypted partition
-    echo -n "${LUKS_PASSPHRASE}" |
-        cryptsetup -v --type luks2 --cipher aes-xts-plain64 \
-            --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part5"
-    echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part5" \
         crypt-system
-    LUKS_PARTITION_UUID_OS=$(cryptsetup luksUUID "${INSTALL_DISK}-part5")
+    LUKS_PARTITION_UUID_OS=$(cryptsetup luksUUID "${INSTALL_DISK}-part4")
 
     # create OS filesystem and swap
     mkfs.xfs -L root /dev/mapper/crypt-system
@@ -184,35 +168,18 @@ partition_zfs() {
     mkswap /dev/mapper/crypt-swap
     swapon /dev/mapper/crypt-swap
 
-    # create a keyfile and save it to LUKS partition (later) for ZFS so it
-    # unlocks without entering our password twice
-    openssl rand -hex -out "/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" 32
-    chown root:root "/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" &&
-        chmod 600 "/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}"
-
-    # setup ZFS pool
-    zpool create -f \
-        -o ashift=12 \
-        -o autotrim=on \
-        -O encryption=aes-256-gcm \
-        -O keylocation="file:///etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" \
-        -O keyformat=hex -O acltype=posixacl -O compression=zstd \
-        -O dnodesize=auto -O normalization=formD -O relatime=on \
-        -O xattr=sa -O canmount=off -O mountpoint=/ dpool \
-        -R /mnt "${INSTALL_DISK}"-part6
-    # setup generic ZFS datasets
-    zfs create -o mountpoint=/home dpool/home
-    chown root:root /mnt/root && chmod 700 /mnt/root
-    zfs create -o mountpoint=/var/lib/docker dpool/docker
-    zfs create -o mountpoint=/var/lib/libvirt dpool/libvirt
-
     # setup boot partition
-    mkfs.ext4 -L boot /dev/mapper/crypt-boot
-    mkdir -p /mnt/boot && mount /dev/mapper/crypt-boot /mnt/boot
+    if [[ "${ENCRYPTED_BOOT}" -eq 0 ]]; then
+        mkfs.xfs -L boot /dev/mapper/crypt-boot
+        mkdir -p /mnt/boot && mount /dev/mapper/crypt-boot /mnt/boot
+    else
+        mkfs.xfs -L boot ${INSTALL_DISK}-part2
+        mkdir -p /mnt/boot && mount ${INSTALL_DISK}-part2 /mnt/boot
+    fi
 
     # setup ESP
-    mkfs.fat -F32 -n ESP "${INSTALL_DISK}-part2"
-    mkdir -p /mnt/boot/efi && mount "${INSTALL_DISK}-part2" /mnt/boot/efi
+    mkfs.fat -F32 -n ESP "${INSTALL_DISK}-part1"
+    mkdir -p /mnt/boot/efi && mount "${INSTALL_DISK}-part1" /mnt/boot/efi
 }
 
 install() {
@@ -230,47 +197,33 @@ install() {
     EXTRA_PACKAGES+=("xfsprogs")
     pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
         systemd-resolvconf mkinitcpio zram-generator \
-        archzfs-linux archzfs-linux-lts archzfs-linux-zen linux-firmware grub \
+        linux linux-lts linux-zen linux-firmware grub \
         cryptsetup terminus-font apparmor python-cffi git \
         neovim "${EXTRA_PACKAGES[@]}"
     genfstab -U /mnt >>/mnt/etc/fstab
-    # genfstab puts our zfs datasets into /ec/fstab, which causes all sorts
-    # of problems on reboot. Remove them
-    # sed does not backtrack, therefore reverse file, search for zfs, then
-    # remove that line and one more (which is the comment) and re-reverse it
-    tac /mnt/etc/fstab | sed -r '/.*\Wzfs\W.*/I,+1 d' >/tmp/fstab.tmp
-    tac /tmp/fstab.tmp >/mnt/etc/fstab
-    # generate a keyfile to be embedded in initrd so we don't have to enter our password twice
-    mkdir /mnt/etc/luks && chown root:root /mnt/etc/luks && chmod 700 /mnt/etc/luks
-    openssl rand -hex -out /mnt/etc/luks/luks_boot_keyfile
-    chown root:root /mnt/etc/luks/luks_boot_keyfile
-    chmod 600 /mnt/etc/luks/luks_boot_keyfile
-    echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part3" \
-        /mnt/etc/luks/luks_boot_keyfile
-    openssl rand -hex -out /mnt/etc/luks/luks_system_keyfile
-    chown root:root /mnt/etc/luks/luks_system_keyfile
-    chmod 600 /mnt/etc/luks/luks_system_keyfile
-    echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part4" \
-        /mnt/etc/luks/luks_system_keyfile
-    openssl rand -hex -out /mnt/etc/luks/luks_swap_keyfile
-    chown root:root /mnt/etc/luks/luks_swap_keyfile
-    chmod 600 /mnt/etc/luks/luks_swap_keyfile
-    echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part5" \
-        /mnt/etc/luks/luks_swap_keyfile
+
+    if [[ "${ENCRYPTED_BOOT}" -eq 0 ]]; then
+        # generate a keyfile to be embedded in initrd so we don't have to enter our password twice
+        mkdir /mnt/etc/luks && chown root:root /mnt/etc/luks && chmod 700 /mnt/etc/luks
+        openssl rand -hex -out /mnt/etc/luks/luks_boot_keyfile
+        chown root:root /mnt/etc/luks/luks_boot_keyfile
+        chmod 600 /mnt/etc/luks/luks_boot_keyfile
+        echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part3" \
+            /mnt/etc/luks/luks_boot_keyfile
+        openssl rand -hex -out /mnt/etc/luks/luks_system_keyfile
+        chown root:root /mnt/etc/luks/luks_system_keyfile
+        chmod 600 /mnt/etc/luks/luks_system_keyfile
+        echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part4" \
+            /mnt/etc/luks/luks_system_keyfile
+        openssl rand -hex -out /mnt/etc/luks/luks_swap_keyfile
+        chown root:root /mnt/etc/luks/luks_swap_keyfile
+        chmod 600 /mnt/etc/luks/luks_swap_keyfile
+        echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part5" \
+            /mnt/etc/luks/luks_swap_keyfile
+    fi
 
     # copy pre-generated configuration files over
     cp -r "${mydir}"/etc/** /mnt/etc
-
-    # copy over our ZFS key
-    mkdir /mnt/etc/zfs
-    cp "/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" \
-        "/mnt/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" && \
-    cp "/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" \
-        "/root/zfskey_dpool_${HOSTNAME_FQDN}"
-    chown root:root "/mnt/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}" && \
-        chmod 600 "/mnt/etc/zfs/zfskey_dpool_${HOSTNAME_FQDN}"
-    chown root:root "/root/zfskey_dpool_${HOSTNAME_FQDN}" && \
-        chmod 600 "/root/zfskey_dpool_${HOSTNAME_FQDN}"
 
     echo "${green}Entering chroot${reset}"
     # enter chroot and perform initial configuration
@@ -280,7 +233,7 @@ install() {
         HOSTNAME="${HOSTNAME}" \
         HOSTNAME_FQDN="${HOSTNAME_FQDN}" \
         ROOT_PASSWORD="${ROOT_PASSWORD}" \
-        LUKS_PARTITION_UUID_BOOT="${LUKS_PARTITION_UUID_BOOT}" \
+        LUKS_PARTITION_UUID_BOOT="${LUKS_PARTITION_UUID_BOOT:-1}" \
         LUKS_PARTITION_UUID_OS="${LUKS_PARTITION_UUID_OS}" \
         LUKS_PARTITION_UUID_SWAP="${LUKS_PARTITION_UUID_SWAP}" \
         INSTALL_DISK="${INSTALL_DISK}" \
@@ -295,7 +248,6 @@ function tear_down() {
     # tear down our installation environment
     echo "${green}Tearing down installation environment${reset}"
     swapoff -a
-    zpool export dpool
     umount -R /mnt
     cryptsetup close crypt-boot
     cryptsetup close crypt-swap
@@ -307,11 +259,6 @@ if [ "$(id -u)" != 0 ]; then
     exit 1
 fi
 
-if ! modinfo zfs &>/dev/null; then
-    echo "ZFS kernel module not available"
-    exit 1
-fi
-
 if [ "$(systemd-detect-virt)" == 'kvm' ]; then # vagrant box, install stuff
     # VIRT=1
     echo "Virtualization detected."
@@ -319,10 +266,9 @@ fi
 
 echo "${green}Installation starting${reset}"
 
-init_archzfs
 preinstall
 setup
-partition_zfs
+partition
 install
 tear_down
 

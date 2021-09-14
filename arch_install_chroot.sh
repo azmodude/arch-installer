@@ -52,10 +52,15 @@ git clone https://github.com/azmodude/arch-bootstrap /root/arch-bootstrap
 
 echo "${green}Generating /etc/crypttab${reset}"
 cat >/etc/crypttab <<END
-crypt-boot UUID=${LUKS_PARTITION_UUID_BOOT} /etc/luks/luks_boot_keyfile discard
 crypt-system UUID=${LUKS_PARTITION_UUID_OS} /etc/luks/luks_system_keyfile discard
 crypt-swap UUID=${LUKS_PARTITION_UUID_SWAP} /etc/luks/luks_swap_keyfile discard
 END
+FILES="/etc/luks/luks_system_keyfile /etc/luks/luks_swap_keyfile"
+
+if [[ ${LUKS_PARTITION_UUID_BOOT} -ne 1 ]]; then
+    echo "crypt-boot UUID=${LUKS_PARTITION_UUID_BOOT} /etc/luks/luks_boot_keyfile discard" >> /etc/crypttab
+    FILES="${FILES} /etc/luks/luks_boot_keyfile"
+fi
 # embed our crypttab in the initramfs for automatic unlock of volumes
 ln -s /etc/crypttab /etc/crypttab.initramfs
 
@@ -63,7 +68,7 @@ echo "${green}Generating mkinitcpio.conf${reset}"
 cat >/etc/mkinitcpio.conf <<END
 MODULES=(${MODULES})
 # We don't really need luks_boot_keyfile this early, here for good measure
-FILES=(/etc/luks/luks_boot_keyfile /etc/luks/luks_system_keyfile /etc/luks/luks_swap_keyfile)
+FILES=(${FILES})
 BINARIES=()
 HOOKS="base systemd autodetect modconf sd-vconsole keyboard block sd-encrypt filesystems fsck"
 COMPRESSION=zstd
