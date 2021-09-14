@@ -35,7 +35,7 @@ setup() {
         bootstrap_dialog --title "Hostname" --inputbox "Please enter a fqdn for this host.\n" 8 60
         HOSTNAME_FQDN="$dialog_result"
     fi
-    if [-z "${ENCRYPTED_BOOT}" ]; then
+    if [-z "${ENCRYPTED_BOOT:-}" ]; then
         bootstrap_dialog --title "Encrypted /boot" --yesno "Encrypt boot?\n" 8 60
         ENCRYPTED_BOOT="${dialog_result}"
     fi
