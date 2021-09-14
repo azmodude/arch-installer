@@ -36,16 +36,24 @@ echo "${green}Cloning arch-bootstrap repository to /root${reset}"
 git clone https://github.com/azmodude/arch-bootstrap /root/arch-bootstrap
 
 echo "${green}Generating /etc/crypttab${reset}"
-cat >/etc/crypttab <<END
+
+if [[ ${LUKS_PARTITION_UUID_BOOT} -ne 1 ]]; then
+    cat >/etc/crypttab <<END
 crypt-system UUID=${LUKS_PARTITION_UUID_OS} /etc/luks/luks_system_keyfile discard
 crypt-swap UUID=${LUKS_PARTITION_UUID_SWAP} /etc/luks/luks_swap_keyfile discard
 END
-FILES="/etc/luks/luks_system_keyfile /etc/luks/luks_swap_keyfile"
+    FILES="/etc/luks/luks_system_keyfile /etc/luks/luks_swap_keyfile"
 
-if [[ ${LUKS_PARTITION_UUID_BOOT} -ne 1 ]]; then
     echo "crypt-boot UUID=${LUKS_PARTITION_UUID_BOOT} /etc/luks/luks_boot_keyfile discard" >> /etc/crypttab
     FILES="${FILES} /etc/luks/luks_boot_keyfile"
+else
+    cat >/etc/crypttab <<END
+crypt-system UUID=${LUKS_PARTITION_UUID_OS} none discard
+crypt-swap UUID=${LUKS_PARTITION_UUID_SWAP} none discard
+END
+    FILES=""
 fi
+
 # embed our crypttab in the initramfs for automatic unlock of volumes
 ln -s /etc/crypttab /etc/crypttab.initramfs
 
