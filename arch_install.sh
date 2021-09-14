@@ -16,8 +16,11 @@ bootstrap_dialog() {
     fi
 }
 bootstrap_dialog_yesno() {
+    # allow errors here because no = 1 = error = abort
+    set +e
     dialog_result=$(dialog --clear --stdout --backtitle "Arch bootstrapper" --no-shadow "$@" 2>/dev/null)
     dialog_result=$?
+    set -e
 }
 bootstrap_dialog_non_mandatory() {
     dialog_result=$(dialog --clear --stdout --backtitle "Arch bootstrapper" --no-shadow "$@" 2>/dev/null)
