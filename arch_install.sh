@@ -125,7 +125,9 @@ partition() {
     # calculate end of our OS partition
     #OS_END="$(echo "1551+(${LVM_SIZE}*1024)" | bc)MiB"
     # create partitions
-    sgdisk --zap-all ${INSTALL_DISK}
+    for partition in 1 2 3 4; do
+        sgdisk --delete=${partition} ${INSTALL_DISK} || true
+    done
     # EFI
     sgdisk --new=1:0:+512M -c 1:"EFI ESP" -t 1:ef00 ${INSTALL_DISK}
     # boot
