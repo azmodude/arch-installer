@@ -6,16 +6,17 @@ red=$(tput setaf 1)
 green=$(tput setaf 2)
 reset=$(tput sgr0)
 
-HOSTNAME_FQDN=$(hostnamectl hostname)
+HOSTNAME_FQDN="$(hostnamectl hostname)"
 INSTALL_DISK=/dev/disk/by-id/....
 POOL="dpool"
 ZFS_PARTITION_NUMBER="9"
 
-zfs_partition_present=$(sgdisk -p ${INSTALL_DISK} | grep "^[ 0-9]" | \
-    sed -r 's/^\s*([0-9]).*'/\1/ | grep ${ZFS_PARTITION_NUMBER})
-if [[ -n "${zfs_partition_present}" ]]; then
-    echo "ZFS partition ${ZFS_PARTITION_NUMBER} already exists." && \
-    echo "Manual touching of zfs-list.cache required (e.g. set a property)."
+zfs_partition_present=1
+
+if sgdisk -p ${INSTALL_DISK} | grep -E -q "\s+${ZFS_PARTITION_NUMBER}"; then
+    zfs_partition_present=0
+    echo "${red}INFO${reset}: ZFS target partition ${green}${ZFS_PARTITION_NUMBER}${reset} already exists."
+    echo "${red}INFO${reset} Manual touching of zfs-list.cache required (e.g. set a property)."
 else
     sgdisk --new=${ZFS_PARTITION_NUMBER}:0:0 \
         -c ${ZFS_PARTITION_NUMBER}:"zfs-${POOL}" \
@@ -26,10 +27,9 @@ fi
 echo "${green}Setting up and enabling ZFS${reset}"
 mkdir -p /etc/zfs/zfs-list.cache
 systemctl enable --now zfs-zed.service
-systemctl enable zfs.target
 touch /etc/zfs/zfs-list.cache/${POOL}
 
-if [[ -z "${zfs_partition_present}" ]]; then
+if [[ "${zfs_partition_present}" -ne 0 ]]; then
     # create a keyfile and save it to LUKS partition (later) for ZFS so it
     # unlocks without entering our password twice
     openssl rand -hex -out "/etc/zfs/zfskey_${POOL}_${HOSTNAME_FQDN}" 32
@@ -49,18 +49,19 @@ if [[ -z "${zfs_partition_present}" ]]; then
 
     # setup generic ZFS datasets
     zfs create -o mountpoint=/home ${POOL}/home
-    chown root:root /mnt/root && chmod 700 /mnt/root
     zfs create -o mountpoint=/var/lib/docker ${POOL}/docker
     zfs create -o mountpoint=/var/lib/libvirt ${POOL}/libvirt
 fi
 
-#zpool set cachefile=/etc/zfs/zpool.cache ${POOL}
+# set cachefile for import on boot
+zpool set cachefile=/etc/zfs/zpool.cache ${POOL}
 # enable zfs services
-#systemctl enable zfs-import-cache.service
-#systemctl enable zfs-import.target
-#systemctl enable zfs-mount.service
-#systemctl enable zfs.target
-# automatically load keys on startup
-systemctl enable zfs-load-key@${POOL}.service
+systemctl enable zfs-import-cache.service
+systemctl enable zfs-import.target
+systemctl enable zfs.target
 # enable monthly scrubbing
 systemctl enable zfs-scrub@${POOL}.timer
+
+zpool export ${POOL} && zpool import ${POOL}
+zfs load-key -L "file:///etc/zfs/zfskey_${POOL}_${HOSTNAME_FQDN}" ${POOL}
+zfs mount -a
