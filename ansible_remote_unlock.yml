@@ -23,6 +23,9 @@
       become: true
       notify: Reload systemd
 
+    - name: Flush handlers (we need host ssh keys immediately)
+      meta: flush_handlers
+
     - name: Check for /root/.ssh/authorized_keys
       stat:
         path: /root/.ssh/authorized_keys
