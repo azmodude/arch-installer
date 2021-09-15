@@ -11,7 +11,7 @@ INSTALL_DISK=/dev/disk/by-id/....
 POOL="dpool"
 ZFS_PARTITION_NUMBER="9"
 
-zfs_partition_present=$(sgdisk -p ${INSTALL_DISK} | grep "^[ 0-9]" \
+zfs_partition_present=$(sgdisk -p ${INSTALL_DISK} | grep "^[ 0-9]" | \
     sed -r 's/^\s*([0-9]).*'/\1/ | grep ${ZFS_PARTITION_NUMBER})
 if [[ -n "${zfs_partition_present}" ]]; then
     echo "ZFS partition ${ZFS_PARTITION_NUMBER} already exists." && \
