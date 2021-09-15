@@ -10,3 +10,5 @@ pacman-key --lsign-key ${ARCHZFS_KEY}
 
 pacman -Sy archzfs-linux archzfs-linux-lts archzfs-linux-zen
 
+echo "zfs installed, please reboot to activate if kernel versions changed."
+
