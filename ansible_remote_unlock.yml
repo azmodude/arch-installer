@@ -2,6 +2,13 @@
 - hosts: localhost
   connection: local
   tasks:
+    - name: Install openssh
+      pacman:
+        name: openssh
+        state: present
+      become: true
+      notify: Generate host ssh keys
+
     - name: Install mkinitcpio-systemd-tool and dependencies
       pacman:
         name: "{{ item }}"
@@ -53,10 +60,18 @@
             - initrd-sysroot-mount.service
       become: true
       notify: Rebuild mkinitcpio
+
   handlers:
+    - name: Generate ssh host keys
+      systemd:
+        name: sshdgenkeys
+        state: started
+      become: true
     - name: Reload systemd
       ansible.builtin.systemd:
         daemon_reload: yes
+      become: true
     - name: Rebuild mkinitcpio
       command: "mkinitcpio -v"
+      become: true
 
