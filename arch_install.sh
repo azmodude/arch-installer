@@ -234,8 +234,9 @@ install() {
     fi
 
     # copy pre-generated configuration files over
-    cp -r "${mydir}"system-config/** /mnt/
-    chmod 600 /mnt/root/.ssh/authorized_keys
+    cp -r "${mydir}"/system-config/** /mnt/
+    chmod 700 /root/.ssh && \
+        chmod 600 /mnt/root/.ssh/authorized_keys
 
     echo "${green}Entering chroot${reset}"
     # enter chroot and perform initial configuration
