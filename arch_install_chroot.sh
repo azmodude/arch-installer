@@ -37,15 +37,13 @@ git clone https://github.com/azmodude/arch-bootstrap /root/arch-bootstrap
 
 echo "${green}Generating /etc/crypttab${reset}"
 
-if [[ ${LUKS_PARTITION_UUID_BOOT} -ne 1 ]]; then
+if [[ -n "${LUKS_PARTITION_UUID_BOOT}" ]]; then
     cat >/etc/crypttab <<END
 crypt-system UUID=${LUKS_PARTITION_UUID_OS} /etc/luks/luks_system_keyfile discard
 crypt-swap UUID=${LUKS_PARTITION_UUID_SWAP} /etc/luks/luks_swap_keyfile discard
+crypt-boot UUID=${LUKS_PARTITION_UUID_BOOT} /etc/luks/luks_boot_keyfile discard
 END
-    FILES="/etc/luks/luks_system_keyfile /etc/luks/luks_swap_keyfile"
-
-    echo "crypt-boot UUID=${LUKS_PARTITION_UUID_BOOT} /etc/luks/luks_boot_keyfile discard" >> /etc/crypttab
-    FILES="${FILES} /etc/luks/luks_boot_keyfile"
+    FILES="/etc/luks/luks_system_keyfile /etc/luks/luks_swap_keyfile /etc/luks/luks_boot_keyfile"
 else
     cat >/etc/crypttab <<END
 crypt-system UUID=${LUKS_PARTITION_UUID_OS} none discard
