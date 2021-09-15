@@ -11,15 +11,14 @@
 
     - name: Install mkinitcpio-systemd-tool and dependencies
       pacman:
-        name: "{{ item }}"
+        name:
+          - mkinitcpio-systemd-tool
+          - busybox
+          - tinyssh
+          - tinyssh-convert
+          - mc
+          - nftables
         state: present
-      loop:
-        - mkinitcpio-systemd-tool
-        - busybox
-        - tinyssh
-        - tinyssh-convert
-        - mc
-        - nftables
       become: true
       notify: Reload systemd
 
@@ -42,6 +41,7 @@
           lineinfile:
             path: "/etc/mkinitcpio.conf"
             regexp: "\bsystemd-tool\b"
+            state: absent
           check_mode: true
           changed_when: false
           register: systemd_tool_present
