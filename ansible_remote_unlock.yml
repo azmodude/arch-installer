@@ -43,7 +43,7 @@
             dest: /etc/mkinitcpio.conf
             line: "systemd-tool"
           check_mode: true
-          register: systemd-tool-present
+          register: systemd_tool_present
 
         - name: Add systemd-tool to mkinitcpio hooks
           replace:
@@ -51,7 +51,7 @@
             dest: /etc/mkinitcpio.conf
             regexp: '^(HOOKS=\".*)\"'
             replace: '\1 systemd-tool"'
-          when: not systemd-tool-present
+          when: not systemd_tool_present
         - name: Copy crypttab and fstab over
           copy:
             src: "/etc/{{ item }}"
@@ -83,6 +83,6 @@
         daemon_reload: yes
       become: true
     - name: Rebuild mkinitcpio
-      command: "mkinitcpio -v"
+      command: "mkinitcpio -v -P"
       become: true
 
