@@ -62,7 +62,7 @@
       notify: Rebuild mkinitcpio
 
   handlers:
-    - name: Generate ssh host keys
+    - name: Generate host ssh keys
       systemd:
         name: sshdgenkeys
         state: started
