@@ -1,0 +1,62 @@
+---
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: Install mkinitcpio-systemd-tool and dependencies
+      pacman:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - mkinitcpio-systemd-tool
+        - busybox
+        - tinyssh
+        - tinyssh-convert
+        - mc
+        - nftables
+      become: true
+      notify: Reload systemd
+
+    - name: Check for /root/.ssh/authorized_keys
+      stat:
+        path: /root/.ssh/authorized_keys
+      register: authorized_keys
+
+    - name: Fail if authorized_keys does not exist
+      fail:
+        msg: "/root/.ssh/authorized_keys not found."
+      when: not authorized_keys.stat.exists
+
+    - name: Install and configure systemd-tool
+      block:
+        - name: Add systemd-tool to mkinitcpio hooks
+          replace:
+            backup: yes
+            dest: /etc/mkinitcpio.conf
+            regexp: '^(HOOKS=\".*)\"'
+            replace: '\1 systemd-tool\"'
+        - name: Copy crypttab and fstab over
+          copy:
+            src: "/etc/{{ item }}"
+            dest: "/etc/mkinitcpio-systemd-tool/config/{{ item }}"
+            backup: true
+          loop:
+            - crypttab
+            - fstab
+        - name: Enable services
+          systemd:
+            name: "{{ item }}"
+            enabled: true
+          loop:
+            - initrd-cryptsetup.path
+            - initrd-tinysshd.service
+            - initrd-debug-progs.service
+            - initrd-sysroot-mount.service
+      become: true
+      notify: Rebuild mkinitcpio
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: yes
+    - name: Rebuild mkinitcpio
+      command: "mkinitcpio -v -p"
+
