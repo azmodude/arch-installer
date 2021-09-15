@@ -38,12 +38,20 @@
 
     - name: Install and configure systemd-tool
       block:
+        - name: Check whether systemd-tool hook already present
+          lineinfile:
+            dest: /etc/mkinitcpio.conf
+            line: "systemd-tool"
+          check_mode: true
+          register: systemd-tool-present
+
         - name: Add systemd-tool to mkinitcpio hooks
           replace:
             backup: yes
             dest: /etc/mkinitcpio.conf
             regexp: '^(HOOKS=\".*)\"'
             replace: '\1 systemd-tool"'
+          when: not systemd-tool-present
         - name: Copy crypttab and fstab over
           copy:
             src: "/etc/{{ item }}"
