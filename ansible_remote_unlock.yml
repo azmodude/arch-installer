@@ -40,7 +40,7 @@
         - name: Check whether systemd-tool hook already present
           lineinfile:
             path: "/etc/mkinitcpio.conf"
-            regexp: "\bsystemd-tool\b"
+            regexp: '\bsystemd-tool\b'
             state: absent
           check_mode: true
           changed_when: false
