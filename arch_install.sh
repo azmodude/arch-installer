@@ -207,7 +207,7 @@ install() {
     FSPOINTS="resume=/dev/mapper/crypt-swap root=/dev/mapper/crypt-system"
     EXTRA_PACKAGES+=("xfsprogs")
     pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
-        systemd-resolvconf mkinitcpio zram-generator gptfdisk \
+        systemd-resolvconf mkinitcpio zram-generator gptfdisk parted \
         linux linux-lts linux-zen linux-firmware grub \
         cryptsetup terminus-font apparmor python-cffi git \
         neovim "${EXTRA_PACKAGES[@]}"
