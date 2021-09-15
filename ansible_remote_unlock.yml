@@ -52,7 +52,6 @@
             dest: /etc/mkinitcpio.conf
             regexp: '^(HOOKS=\".*)\"'
             replace: '\1 systemd-tool"'
-          changed_when: false
           when: systemd_tool_not_present
         - name: Copy crypttab and fstab over
           copy:
