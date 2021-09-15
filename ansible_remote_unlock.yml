@@ -40,8 +40,8 @@
       block:
         - name: Check whether systemd-tool hook already present
           lineinfile:
-            dest: /etc/mkinitcpio.conf
-            line: "systemd-tool"
+            path: "/etc/mkinitcpio.conf"
+            regexp: "\bsystemd-tool\b"
           check_mode: true
           changed_when: false
           register: systemd_tool_present
@@ -52,7 +52,7 @@
             dest: /etc/mkinitcpio.conf
             regexp: '^(HOOKS=\".*)\"'
             replace: '\1 systemd-tool"'
-          when: systemd_tool_present.changed
+          when: not systemd_tool_present.found
         - name: Copy crypttab and fstab over
           copy:
             src: "/etc/{{ item }}"
