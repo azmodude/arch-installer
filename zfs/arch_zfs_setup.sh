@@ -7,7 +7,7 @@ green=$(tput setaf 2)
 reset=$(tput sgr0)
 
 HOSTNAME_FQDN="$(hostnamectl hostname)"
-INSTALL_DISK=/dev/disk/by-id/....
+INSTALL_DISK="/dev/disk/by-id/...."
 POOL="dpool"
 ZFS_PARTITION_NUMBER="9"
 
