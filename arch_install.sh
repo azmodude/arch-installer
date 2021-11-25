@@ -46,6 +46,7 @@ setup() {
     if [ -z "${ENCRYPTED_BOOT:-}" ]; then
         bootstrap_dialog_yesno --title "Encrypted /boot" --yesno "Encrypt boot?\n" 8 60
         ENCRYPTED_BOOT="${dialog_result}"
+        [[ "${ENCRYPTED_BOOT}" -eq 1 ]] && ENCRYPT_BOOT=false || ENCRYPT_BOOT=true
     fi
 
     if [ -z "${OS_SIZE:-}" ]; then
@@ -54,8 +55,9 @@ setup() {
     fi
 
     if [ -z "${SWAP_SIZE:-}" ]; then
-        bootstrap_dialog --title "Swap Size" --inputbox "Please enter a swap size in GB.\n" 8 60
+        bootstrap_dialog --title "Swap Size" --inputbox "Please enter a swap size in GB. 0 to disable and only use zram.\n" 8 60
         SWAP_SIZE="$dialog_result"
+        [[ "${SWAP_SIZE}" == "0" ]] && SWAP_ENABLED=false || SWAP_ENABLED=true
     fi
 
     if [ -z "${LUKS_PASSPHRASE:-}" ]; then
@@ -126,19 +128,21 @@ partition() {
     #OS_END="$(echo "1551+(${LVM_SIZE}*1024)" | bc)MiB"
     # create partitions
     for partition in 1 2 3 4; do
-        sgdisk --delete=${partition} ${INSTALL_DISK} || true
+        sgdisk --delete=${partition} "${INSTALL_DISK}" || true
     done
     # EFI
-    sgdisk --new=1:0:+512M -c 1:"EFI ESP" -t 1:ef00 ${INSTALL_DISK}
+    sgdisk --new=1:0:+512M -c 1:"EFI ESP" -t 1:ef00 "${INSTALL_DISK}"
     # boot
-    sgdisk --new=2:0:+5G -c 2:"boot" -t 2:8300 ${INSTALL_DISK}
+    sgdisk --new=2:0:+5G -c 2:"boot" -t 2:8300 "${INSTALL_DISK}"
     # swap
-    sgdisk --new=3:0:+${SWAP_SIZE}G -c 3:"swap" -t 3:8200 ${INSTALL_DISK}
+    if [ "${SWAP_ENABLED}" = true ]; then
+        sgdisk --new=3:0:+"${SWAP_SIZE}G" -c 3:"swap" -t 3:8200 "${INSTALL_DISK}"
+    fi
     # root
-    sgdisk --new=4:0:+${OS_SIZE}G -c 4:"system" -t 4:8300 ${INSTALL_DISK}
+    sgdisk --new=4:0:+"${OS_SIZE}G" -c 4:"system" -t 4:8300 "${INSTALL_DISK}"
 
     # try to re-read partitions for good measure...
-    partprobe ${INSTALL_DISK}
+    partprobe "${INSTALL_DISK}"
 
     # ... still, give udev some time to create the new symlinks
     sleep 2
@@ -148,7 +152,7 @@ partition() {
     #    cryptsetup -v --type luks1 --pbkdf-force-iterations 200000 \
     #    --cipher aes-xts-plain64 \
     #    --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
-    if [[ "${ENCRYPTED_BOOT}" -eq 0 ]]; then
+    if [ "${ENCRYPT_BOOT}" = true ]; then
         echo -n "${LUKS_PASSPHRASE}" |
             cryptsetup -v --type luks1 \
             --cipher aes-xts-plain64 \
@@ -158,12 +162,14 @@ partition() {
         LUKS_PARTITION_UUID_BOOT=$(cryptsetup luksUUID "${INSTALL_DISK}-part2")
     fi
     # create swap encrypted partition
-    echo -n "${LUKS_PASSPHRASE}" |
-        cryptsetup -v --type luks2 --cipher aes-xts-plain64 \
-            --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
-    echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part3" \
-        crypt-swap
-    LUKS_PARTITION_UUID_SWAP=$(cryptsetup luksUUID "${INSTALL_DISK}-part3")
+    if [ "${SWAP_ENABLED}" = true ]; then
+        echo -n "${LUKS_PASSPHRASE}" |
+            cryptsetup -v --type luks2 --cipher aes-xts-plain64 \
+                --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
+        echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part3" \
+            crypt-swap
+        LUKS_PARTITION_UUID_SWAP=$(cryptsetup luksUUID "${INSTALL_DISK}-part3")
+    fi
     # create OS luks encrypted partition
     echo -n "${LUKS_PASSPHRASE}" |
         cryptsetup -v --type luks2 --cipher aes-xts-plain64 \
@@ -176,16 +182,18 @@ partition() {
     mkfs.xfs -L root /dev/mapper/crypt-system
     mount /dev/mapper/crypt-system /mnt
 
-    mkswap /dev/mapper/crypt-swap
-    swapon /dev/mapper/crypt-swap
+    if [ "${SWAP_ENABLED}" = true ]; then
+        mkswap /dev/mapper/crypt-swap
+        swapon /dev/mapper/crypt-swap
+    fi
 
     # setup boot partition
-    if [[ "${ENCRYPTED_BOOT}" -eq 0 ]]; then
+    if [ "${ENCRYPT_BOOT}" = true ]; then
         mkfs.xfs -L boot /dev/mapper/crypt-boot
         mkdir -p /mnt/boot && mount /dev/mapper/crypt-boot /mnt/boot
     else
-        mkfs.xfs -L boot ${INSTALL_DISK}-part2
-        mkdir -p /mnt/boot && mount ${INSTALL_DISK}-part2 /mnt/boot
+        mkfs.xfs -L boot "${INSTALL_DISK}-part2"
+        mkdir -p /mnt/boot && mount "${INSTALL_DISK}-part2" /mnt/boot
     fi
 
     # setup ESP
@@ -204,7 +212,11 @@ install() {
         EXTRA_PACKAGES=("amd-ucode")
         MODULES="amdgpu"
     fi
-    FSPOINTS="resume=/dev/mapper/crypt-swap root=/dev/mapper/crypt-system"
+
+    FSPOINTS="root=/dev/mapper/crypt-system"
+    if [ ${SWAP_ENABLED} = true ]; then
+        FSPOINTS="${FSPOINTS} resume=/dev/mapper/crypt-swap"
+    fi
     EXTRA_PACKAGES+=("xfsprogs")
     pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
         systemd-resolvconf mkinitcpio zram-generator gptfdisk parted \
@@ -213,7 +225,7 @@ install() {
         neovim "${EXTRA_PACKAGES[@]}"
     genfstab -U /mnt >>/mnt/etc/fstab
 
-    if [[ "${ENCRYPTED_BOOT}" -eq 0 ]]; then
+    if [ "${ENCRYPT_BOOT}" = true ]; then
         # generate a keyfile to be embedded in initrd so we don't have to enter our password twice
         mkdir /mnt/etc/luks && chown root:root /mnt/etc/luks && chmod 700 /mnt/etc/luks
         openssl rand -hex -out /mnt/etc/luks/luks_boot_keyfile
@@ -224,13 +236,15 @@ install() {
         openssl rand -hex -out /mnt/etc/luks/luks_system_keyfile
         chown root:root /mnt/etc/luks/luks_system_keyfile
         chmod 600 /mnt/etc/luks/luks_system_keyfile
-        echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part3" \
-            /mnt/etc/luks/luks_system_keyfile
-        openssl rand -hex -out /mnt/etc/luks/luks_swap_keyfile
-        chown root:root /mnt/etc/luks/luks_swap_keyfile
-        chmod 600 /mnt/etc/luks/luks_swap_keyfile
-        echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part4" \
-            /mnt/etc/luks/luks_swap_keyfile
+        if [ "${SWAP_ENABLED}" = true ]; then
+            echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part3" \
+                /mnt/etc/luks/luks_system_keyfile
+            openssl rand -hex -out /mnt/etc/luks/luks_swap_keyfile
+            chown root:root /mnt/etc/luks/luks_swap_keyfile
+            chmod 600 /mnt/etc/luks/luks_swap_keyfile
+            echo -n "${LUKS_PASSPHRASE}" | cryptsetup -v luksAddKey "${INSTALL_DISK}-part4" \
+                /mnt/etc/luks/luks_swap_keyfile
+        fi
     fi
 
     # copy pre-generated configuration files over
@@ -248,7 +262,7 @@ install() {
         ROOT_PASSWORD="${ROOT_PASSWORD}" \
         LUKS_PARTITION_UUID_BOOT="${LUKS_PARTITION_UUID_BOOT:-}" \
         LUKS_PARTITION_UUID_OS="${LUKS_PARTITION_UUID_OS}" \
-        LUKS_PARTITION_UUID_SWAP="${LUKS_PARTITION_UUID_SWAP}" \
+        LUKS_PARTITION_UUID_SWAP="${LUKS_PARTITION_UUID_SWAP:-}" \
         INSTALL_DISK="${INSTALL_DISK}" \
         IS_EFI="${IS_EFI}" \
         FSPOINTS="${FSPOINTS}" \
@@ -263,7 +277,7 @@ function tear_down() {
     swapoff -a
     umount -R /mnt
     cryptsetup close crypt-boot
-    cryptsetup close crypt-swap
+    [ "${SWAP_ENABLED}" = true ] && cryptsetup close crypt-swap
     cryptsetup close crypt-system
 }
 

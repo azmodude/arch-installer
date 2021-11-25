@@ -40,16 +40,22 @@ echo "${green}Generating /etc/crypttab${reset}"
 if [[ -n "${LUKS_PARTITION_UUID_BOOT}" ]]; then
     cat >/etc/crypttab <<END
 crypt-system UUID=${LUKS_PARTITION_UUID_OS} /etc/luks/luks_system_keyfile discard
-crypt-swap UUID=${LUKS_PARTITION_UUID_SWAP} /etc/luks/luks_swap_keyfile discard
 crypt-boot UUID=${LUKS_PARTITION_UUID_BOOT} /etc/luks/luks_boot_keyfile discard
 END
-    FILES="/etc/luks/luks_system_keyfile /etc/luks/luks_swap_keyfile /etc/luks/luks_boot_keyfile"
+    FILES="/etc/luks/luks_system_keyfile /etc/luks/luks_boot_keyfile"
 else
     cat >/etc/crypttab <<END
 crypt-system UUID=${LUKS_PARTITION_UUID_OS} none discard
-crypt-swap UUID=${LUKS_PARTITION_UUID_SWAP} none discard
 END
     FILES=""
+fi
+if [[ -n "${LUKS_PARTITION_UUID_SWAP}" ]]; then
+    if [[ -n "${LUKS_PARTITION_UUID_BOOT}" ]]; then
+        echo "crypt-swap UUID=${LUKS_PARTITION_UUID_SWAP} /etc/luks/luks_swap_keyfile discard" >> /etc/crypttab
+        FILES="${FILES} /etc/luks/luks_swap_keyfile"
+    else
+        echo "crypt-swap UUID=${LUKS_PARTITION_UUID_SWAP} none discard" >> /etc/crypttab
+    fi
 fi
 
 # embed our crypttab in the initramfs for automatic unlock of volumes
