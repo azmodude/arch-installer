@@ -18,6 +18,8 @@ EOF
 pacman-key --keyserver keyserver.ubuntu.com -r ${ARCHZFS_KEY}
 pacman-key --lsign-key ${ARCHZFS_KEY}
 
+# resize cowspace
+mount -o remount,size=4G /run/archiso/cowspace
 pacman -Sy archzfs-linux archzfs-linux-lts archzfs-linux-zen
 
 echo "zfs installed, please reboot to activate if kernel versions changed."
