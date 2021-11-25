@@ -36,14 +36,8 @@ Vagrant.configure("2") do |config|
             pacman --noconfirm -S archlinux-keyring
 SCRIPT
     $provisioning_script_installation = <<-'SCRIPT'
-        # copy pacman related files over
-        cp /vagrant/etc/pacman.d/* /etc/pacman.d
-        cp /vagrant/etc/pacman.conf /etc/pacman.conf
-        # get and lsign archzfs keys
-        pacman-key --keyserver pool.sks-keyservers.net -r DDF7DB817396A49B2A2723F7403BD972F75D9D76
-        pacman-key --lsign-key DDF7DB817396A49B2A2723F7403BD972F75D9D76
-        pacman -Syyu --noconfirm
-        pacman -S --noconfirm zfs-linux zfs-utils
+      pacman -S --noconfirm git
+      git clone https://github.com/azmodude/arch-installer
 SCRIPT
 
     $provisioning_script_archiso = <<-'SCRIPT'
@@ -82,7 +76,7 @@ SCRIPT
     if ENV['BUILDISO']
       arch.vm.provision "shell", inline: $provisioning_script_archiso
     else
-      arch.vm.provision "shell", inline: $provisioning_script_archiso
+      arch.vm.provision "shell", inline: $provisioning_script_installation
     end
 
   end
