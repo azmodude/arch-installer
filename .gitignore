@@ -4,3 +4,4 @@
 old-isos/*
 install/tmp/**
 .env.mk
+*.qcow2
