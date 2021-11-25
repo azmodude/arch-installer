@@ -9,7 +9,7 @@ Vagrant.configure("2") do |config|
     # enable ssh forwarding
     arch.ssh.forward_agent = true
 
-    arch.vm.synced_folder '.', '/vagrant', type: 'nfs'
+    arch.vm.synced_folder '.', '/vagrant', type: 'sshfs'
     # as we are using a GUI, modify VM to accomodate for that
     arch.vm.provider :libvirt do |lv|
       # lv.loader = '/usr/share/qemu/OVMF.fd'
