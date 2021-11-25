@@ -12,7 +12,7 @@ ssh:
 move-iso:
 	-mv archlinux-*-azmo-zfs.iso old-isos
 build-iso:
-	VAGRANT_VAGRANTFILE=./Vagrantfile.archiso vagrant up
+	 BUILDISO=1 vagrant up
 rename-iso:
 	$(eval FILE=$(shell find . -type f -regextype posix-extended -regex "./archlinux-[0-9\.]+-x86_64.iso"))
 	$(eval FILE_NO_EXT=$(shell basename $(FILE) .iso))
