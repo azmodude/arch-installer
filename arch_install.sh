@@ -120,7 +120,7 @@ preinstall() {
     # Set up reflector
     echo "${green}Setting up reflector${reset}"
     pacman -S --needed --noconfirm reflector
-    reflector --verbose --latest 15 --sort rate --protocol https \
+    reflector --verbose --latest 8 --sort rate --protocol https \
         --country DE --country NL --save /etc/pacman.d/mirrorlist \
         --save /etc/pacman.d/mirrorlist
 }
