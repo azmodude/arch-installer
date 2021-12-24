@@ -235,10 +235,10 @@ partition() {
 
     # setup boot partition
     if [ "${ENCRYPT_BOOT}" = true ]; then
-        mkfs.xfs -L boot /dev/mapper/crypt-boot
+        mkfs.xfs -f -L boot /dev/mapper/crypt-boot
         mkdir -p /mnt/boot && mount /dev/mapper/crypt-boot /mnt/boot
     else
-        mkfs.xfs -L boot "${INSTALL_DISK}-part2"
+        mkfs.xfs -f -L boot "${INSTALL_DISK}-part2"
         mkdir -p /mnt/boot && mount "${INSTALL_DISK}-part2" /mnt/boot
     fi
 
