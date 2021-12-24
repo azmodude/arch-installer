@@ -207,11 +207,11 @@ partition() {
     mount -o subvolid=5,noatime,autodefrag \
         /dev/mapper/crypt-system /mnt/mnt/btrfs-root
 
-    mkdir /mnt/home
-    mount -o subvol=@home,relatime,autodefrag \
-        /dev/mapper/crypt-system /mnt/home
-
     # on zfs for now
+    #mkdir /mnt/home
+    #mount -o subvol=@home,relatime,autodefrag \
+    #    /dev/mapper/crypt-system /mnt/home
+    #
     #mkdir -p /mnt/var/lib/docker
     #mount -o subvol=@docker,compress=none,noatime,autodefrag \
     #    /dev/mapper/crypt-system /mnt/var/lib/docker
