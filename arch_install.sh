@@ -106,7 +106,8 @@ setup() {
 
 preinstall() {
     # load necessary modules incase arch decides to update the kernel mid-flight
-    modprobe dm_mod && modprobe dm_crypt && modprobe btrfs && modprobe xfs
+    modprobe dm_mod && modprobe dm_crypt && modprobe btrfs && \
+	    modprobe xfs && modprobe vfat
     echo "${green}Resizing /run/archiso/cowspace to 4GB to facilitate updates"
     mount -o remount,size=4G /run/archiso/cowspace
     # install needed stuff for install
