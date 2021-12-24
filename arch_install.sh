@@ -1,4 +1,4 @@
-#!/bin/bash
+#1!/bin/bash
 
 set -Eeuxo pipefail
 
@@ -82,7 +82,9 @@ setup() {
         fi
     fi
 
-    bootstrap_dialog_non_mandatory --title "WARNING" --msgbox "This script will NUKE ${INSTALL_DISK}.\nPress <Enter> to continue or <Esc> to cancel.\n" 6 60
+    bootstrap_dialog_non_mandatory --title "WARNING" \
+        --msgbox "This script will NUKE Partitions 1 to 4 on ${INSTALL_DISK}.\nPress <Enter> to continue or <Esc> to cancel.\n" \
+        6 60
 
     clear
 
@@ -108,7 +110,7 @@ preinstall() {
     # install needed stuff for install
     echo "${green}Installing necessary packages${reset}"
     pacman -Sy --needed --noconfirm parted util-linux dialog bc dosfstools \
-        arch-install-scripts xfsprogs gptfdisk openssl
+        arch-install-scripts xfsprogs gptfdisk openssl btrfs-progs
     # set keys to German
     loadkeys de
     # enable NTP
@@ -179,13 +181,54 @@ partition() {
     LUKS_PARTITION_UUID_OS=$(cryptsetup luksUUID "${INSTALL_DISK}-part4")
 
     # create OS filesystem and swap
-    mkfs.xfs -L root /dev/mapper/crypt-system
+    mkfs.btrfs -L root /dev/mapper/crypt-system
     mount /dev/mapper/crypt-system /mnt
 
     if [ "${SWAP_ENABLED}" = true ]; then
         mkswap /dev/mapper/crypt-swap
         swapon /dev/mapper/crypt-swap
     fi
+
+    # create btrfs subvolumes
+    btrfs subvolume create /mnt/@
+    # don't create anything non / for now, we are using zfs for the foreseeable future
+    #btrfs subvolume create /mnt/@home
+    #btrfs subvolume create /mnt/@docker
+    #btrfs subvolume create /mnt/@libvirt
+    umount /mnt
+
+    mount -o subvol=@,noatime,autodefrag \
+        /dev/mapper/crypt-system /mnt
+    # mount root btrfs into /mnt/btrfs-root and make it only root-accessible
+    mkdir -p /mnt/mnt/btrfs-root && \
+        chown root:root /mnt/mnt/btrfs-root && \
+        chown 700 /mnt/mnt/btrfs-root
+    mount -o subvolid=5,noatime,autodefrag \
+        /dev/mapper/crypt-system /mnt/mnt/btrfs-root
+
+    mkdir /mnt/home
+    mount -o subvol=@home,relatime,autodefrag \
+        /dev/mapper/crypt-system /mnt/home
+
+    # on zfs for now
+    #mkdir -p /mnt/var/lib/docker
+    #mount -o subvol=@docker,compress=none,noatime,autodefrag \
+    #    /dev/mapper/crypt-system /mnt/var/lib/docker
+    #mkdir -p /mnt/var/lib/libvirt
+    #mount -o subvol=@libvirt,compress=none,nodatacow,noatime,noautodefrag \
+    #    /dev/mapper/crypt-system /mnt/var/lib/libvirt
+    ## set NOCOW on that directory - I wish btrfs had per subvolume options...
+    #chattr +C /mnt/var/lib/libvirt
+
+    # enable compression where applicable
+    btrfs property set /mnt compression zstd
+    #btrfs property set /mnt/home compression zstd
+    #btrfs property set /mnt/var/lib/docker compression zstd
+
+    # create extra subvolumes so we don't clobber our / snapshots
+    btrfs subvolume create /mnt/var/abs
+    btrfs subvolume create /mnt/var/cache
+    btrfs subvolume create /mnt/var/tmp
 
     # setup boot partition
     if [ "${ENCRYPT_BOOT}" = true ]; then

@@ -26,6 +26,8 @@ systemctl enable apparmor.service
 systemctl enable systemd-resolved.service
 # enable fstrim
 systemctl enable fstrim.timer
+# enable btrfs monthly scrub for /
+systemctl enable btrfs-scrub@-.timer
 
 # setup zram and oomd
 systemctl enable systemd-zram-setup@zram0.service systemd-oomd.service
