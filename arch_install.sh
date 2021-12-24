@@ -263,7 +263,7 @@ install() {
     if [ ${SWAP_ENABLED} = true ]; then
         FSPOINTS="${FSPOINTS} resume=/dev/mapper/crypt-swap"
     fi
-    EXTRA_PACKAGES+=("xfsprogs")
+    EXTRA_PACKAGES+=("xfsprogs" "btrfs-progs")
     pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
         systemd-resolvconf mkinitcpio zram-generator gptfdisk parted \
         linux linux-lts linux-zen linux-firmware grub \
