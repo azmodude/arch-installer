@@ -107,9 +107,11 @@ setup() {
 preinstall() {
     # load necessary modules incase arch decides to update the kernel mid-flight
     modprobe dm_mod dm_crypt
+    echo "${green}Resizing /run/archiso/cowspace to 4GB to facilitate updates"
+    mount -o remount,size=4G /run/archiso/cowspace
     # install needed stuff for install
-    echo "${green}Installing necessary packages${reset}"
-    pacman -Sy --needed --noconfirm parted util-linux dialog bc dosfstools \
+    echo "${green}Updating environment and installing necessary packages${reset}"
+    pacman -Syu --needed --noconfirm parted util-linux dialog bc dosfstools \
         arch-install-scripts xfsprogs gptfdisk openssl btrfs-progs
     # set keys to German
     loadkeys de
@@ -117,8 +119,7 @@ preinstall() {
     timedatectl set-ntp true
     # Set up reflector
     echo "${green}Setting up reflector${reset}"
-    pacman -Sy &&
-        pacman -S --needed --noconfirm reflector
+    pacman -S --needed --noconfirm reflector
     reflector --verbose --latest 15 --sort rate --protocol https \
         --country DE --country NL --save /etc/pacman.d/mirrorlist \
         --save /etc/pacman.d/mirrorlist
