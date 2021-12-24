@@ -227,6 +227,7 @@ partition() {
     #btrfs property set /mnt/var/lib/docker compression zstd
 
     # create extra subvolumes so we don't clobber our / snapshots
+    mkdir -p /mnt/var || true
     btrfs subvolume create /mnt/var/abs
     btrfs subvolume create /mnt/var/cache
     btrfs subvolume create /mnt/var/tmp
