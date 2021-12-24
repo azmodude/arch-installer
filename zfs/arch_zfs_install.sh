@@ -13,25 +13,25 @@ EOF
 
 [[ ! -e /etc/pacman.d/archzfs-kernels ]] && echo 'Server = http://kernels.archzfs.com/$repo' > /etc/pacman.d/archzfs-kernels
 
-if ! grep -q "[archzfs]" /etc/pacman.conf; then
+if ! grep -q "\[archzfs\]" /etc/pacman.conf; then
 	cat <<-'EOF' >> /etc/pacman.conf
 [archzfs]
 Include = /etc/pacman.d/archzfs
 EOF
 fi
-if ! grep -q "[zfs-linux]" /etc/pacman.conf; then
+if ! grep -q "\[zfs-linux\]" /etc/pacman.conf; then
 	cat <<-'EOF' >> /etc/pacman.conf
 [zfs-linux]
 Include = /etc/pacman.d/archzfs-kernels
 EOF
 fi
-if ! grep -q "[zfs-linux-lts]" /etc/pacman.conf; then
+if ! grep -q "\[zfs-linux-lts\]" /etc/pacman.conf; then
 	cat <<-'EOF' >> /etc/pacman.conf
 [zfs-linux-lts]
 Include = /etc/pacman.d/archzfs-kernels
 EOF
 fi
-if ! grep -q "[zfs-linux-zen]" /etc/pacman.conf; then
+if ! grep -q "\[zfs-linux-zen\]" /etc/pacman.conf; then
 	cat <<-'EOF' >> /etc/pacman.conf
 [zfs-linux-zen]
 Include = /etc/pacman.d/archzfs-kernels
