@@ -137,7 +137,7 @@ partition() {
         sgdisk --delete=${partition} "${INSTALL_DISK}" || true
     done
     # EFI
-    sgdisk --new=1:0:+512M -c 1:"EFI ESP" -t 1:ef00 "${INSTALL_DISK}"
+    sgdisk --new=1:0:+550M -c 1:"EFI ESP" -t 1:ef00 "${INSTALL_DISK}"
     # boot
     sgdisk --new=2:0:+5G -c 2:"boot" -t 2:8300 "${INSTALL_DISK}"
     # swap
@@ -235,18 +235,18 @@ partition() {
     btrfs subvolume create /mnt/var/cache
     btrfs subvolume create /mnt/var/tmp
 
-    # setup boot partition
-    if [ "${ENCRYPT_BOOT}" = true ]; then
-        mkfs.xfs -f -L boot /dev/mapper/crypt-boot
-        mkdir -p /mnt/boot && mount /dev/mapper/crypt-boot /mnt/boot
-    else
-        mkfs.xfs -f -L boot "${INSTALL_DISK}-part2"
-        mkdir -p /mnt/boot && mount "${INSTALL_DISK}-part2" /mnt/boot
-    fi
+#    # setup boot partition
+#    if [ "${ENCRYPT_BOOT}" = true ]; then
+#        mkfs.xfs -f -L boot /dev/mapper/crypt-boot
+#        mkdir -p /mnt/boot && mount /dev/mapper/crypt-boot /mnt/boot
+#    else
+#        mkfs.xfs -f -L boot "${INSTALL_DISK}-part2"
+#        mkdir -p /mnt/boot && mount "${INSTALL_DISK}-part2" /mnt/boot
+#    fi
 
     # setup ESP
     mkfs.fat -F32 -n ESP "${INSTALL_DISK}-part1"
-    mkdir -p /mnt/boot/efi && mount "${INSTALL_DISK}-part1" /mnt/boot/efi
+    mkdir -p /mnt/boot && mount "${INSTALL_DISK}-part1" /mnt/boot
 }
 
 install() {
@@ -261,7 +261,7 @@ install() {
         MODULES="amdgpu"
     fi
     if [[ "${IS_AMD_GPU}" -eq 1 ]] && [[ "${IS_AMD_CPU}" -ne 1 ]]; then
-        MODULES="amdgpu"
+        MODULES="${MODULES} amdgpu"
     fi
 
     FSPOINTS="root=/dev/mapper/crypt-system"
