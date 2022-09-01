@@ -47,7 +47,7 @@ setup() {
       bootstrap_dialog_yesno --title "Encrypted /boot" --yesno "Encrypt boot (implies GRUB)?\n" 8 60
         ENCRYPTED_BOOT="${dialog_result}"
         [[ "${ENCRYPTED_BOOT}" -eq 1 ]] && ENCRYPT_BOOT=false || ENCRYPT_BOOT=true
-        [[ "${ENCRYPTED_BOOT}" == true ]] && USE_GRUB=1
+        [[ "${ENCRYPT_BOOT}" == true ]] && USE_GRUB=1
     fi
 
     if [ -z "${USE_GRUB:-}" ]; then
