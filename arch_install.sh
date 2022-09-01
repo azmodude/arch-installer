@@ -368,6 +368,6 @@ preinstall
 setup
 partition
 install
-tear_down
+#tear_down
 
 echo "${green}Installation finished${reset}"
