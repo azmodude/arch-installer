@@ -52,7 +52,7 @@ setup() {
 
     if [ -z "${USE_GRUB:-}" ]; then
       declare -a loaders
-      loaders=(systemd-boot grub)
+      loaders=("systemd-boot" "Minimal Bootloader (uefi only)" "grub" "prepare for trouble")
         bootstrap_dialog --title "Use which bootloader?" \
             --menu "Use which bootloader?" 0 0 0 \
             "${loaders[@]}"
