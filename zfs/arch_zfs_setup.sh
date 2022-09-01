@@ -36,6 +36,7 @@ if [[ "${zfs_partition_present}" -ne 0 ]]; then
     chown root:root "/etc/zfs/zfskey_${POOL}_${HOSTNAME_FQDN}" &&
         chmod 600 "/etc/zfs/zfskey_${POOL}_${HOSTNAME_FQDN}"
 
+    tmpmount=$(mktemp -d)
     # setup ZFS pool
     zpool create -f \
         -o ashift=12 \
@@ -45,7 +46,7 @@ if [[ "${zfs_partition_present}" -ne 0 ]]; then
         -O keyformat=hex -O acltype=posixacl -O compression=zstd \
         -O dnodesize=auto -O normalization=formD -O relatime=on \
         -O xattr=sa -O canmount=off -O mountpoint=/ ${POOL} \
-        -R /mnt "${INSTALL_DISK}"-part"${ZFS_PARTITION_NUMBER}"
+        -R "${tmpmount}" "${INSTALL_DISK}"-part"${ZFS_PARTITION_NUMBER}"
 
     # setup generic ZFS datasets
     zfs create -o mountpoint=/home ${POOL}/home
