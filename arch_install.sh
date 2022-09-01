@@ -1,4 +1,4 @@
-#1!/bin/bash
+#!/bin/bash
 
 set -Eeuxo pipefail
 
@@ -97,6 +97,8 @@ setup() {
         IS_INTEL_CPU=0
     grep vendor_id /proc/cpuinfo | grep -q AMD && IS_AMD_CPU=1 ||
         IS_AMD_CPU=0
+    lspci -mm | grep -q "VGA.*AMD" && IS_AMD_GPU=1 || IS_AMD_GPU=0
+
     [ -d /sys/firmware/efi ] && IS_EFI=true || IS_EFI=false
     case "${IS_EFI}" in
     true) echo "${green}Performing UEFI install${reset}" ;;
@@ -258,6 +260,9 @@ install() {
         EXTRA_PACKAGES=("amd-ucode")
         MODULES="amdgpu"
     fi
+    if [[ "${IS_AMD_GPU}" -eq 1 ]] && [[ "${IS_AMD_CPU}" -ne 1 ]]; then
+        MODULES="amdgpu"
+    fi
 
     FSPOINTS="root=/dev/mapper/crypt-system"
     if [ ${SWAP_ENABLED} = true ]; then
@@ -311,6 +316,7 @@ install() {
         LUKS_PARTITION_UUID_SWAP="${LUKS_PARTITION_UUID_SWAP:-}" \
         INSTALL_DISK="${INSTALL_DISK}" \
         IS_EFI="${IS_EFI}" \
+        IS_AMD_GPU="${IS_AMD_GPU}" \
         FSPOINTS="${FSPOINTS}" \
         /bin/bash --login -c /arch_install_chroot.sh
     # remove temporary chroot script
