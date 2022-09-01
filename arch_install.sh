@@ -55,7 +55,7 @@ setup() {
     fi
 
     if [ -z "${SWAP_SIZE:-}" ]; then
-        bootstrap_dialog --title "Swap Size" --inputbox "Please enter a swap size in GB. 0 to disable and only use zram.\n" 8 60
+        bootstrap_dialog --title "Swap Size" --inputbox "Please enter a swap size in GB. 0 to disable and *only* use zram.\n" 8 60
         SWAP_SIZE="$dialog_result"
         [[ "${SWAP_SIZE}" == "0" ]] && SWAP_ENABLED=false || SWAP_ENABLED=true
     fi
