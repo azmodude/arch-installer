@@ -22,13 +22,11 @@ destroy:
 	vagrant destroy -f
 
 test-vm-install:
-	virt-install --name=archtest --vcpus=4 \
-        --boot loader=//usr/share/OVMF/OVMF_CODE.fd \
-        --memory=2048 --cdrom=${ISO} --disk \
+	virt-install --name=archtest --vcpus=4 --boot uefi \
+        --memory=4096 --cdrom=${ISO} --disk \
         ${IMAGE},size=40,bus=sata --os-variant=archlinux
 test-vm:
-	virt-install --name=archtest --vcpus=4 \
-        --boot loader=//usr/share/OVMF/OVMF_CODE.fd \
+	virt-install --name=archtest --vcpus=4 --boot uefi \
         --memory=2048 --disk ${IMAGE},bus=sata --os-variant=archlinux
 destroy-vm-install:
 	-virsh destroy archtest
