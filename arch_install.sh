@@ -329,7 +329,7 @@ function tear_down() {
     swapoff -a
     rm -f /mnt/arch_install_chroot.sh
     umount -R /mnt
-    cryptsetup close crypt-boot
+    [ "${ENCRYPT_BOOT}" = true ] && cryptsetup close crypt-boot
     [ "${SWAP_ENABLED}" = true ] && cryptsetup close crypt-swap
     cryptsetup close crypt-system
 }
