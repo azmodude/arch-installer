@@ -113,8 +113,8 @@ preinstall() {
     echo "${green}Resizing /run/archiso/cowspace to 4GB to facilitate updates"
     mount -o remount,size=4G /run/archiso/cowspace
     # install needed stuff for install
-    echo "${green}Updating environment and installing necessary packages${reset}"
-    pacman -Syu --needed --noconfirm parted util-linux dialog bc dosfstools \
+    echo "${green}Installing necessary packages${reset}"
+    pacman -Sy --needed --noconfirm parted util-linux dialog bc dosfstools \
         arch-install-scripts xfsprogs gptfdisk openssl btrfs-progs
     # set keys to German
     loadkeys de
@@ -327,6 +327,7 @@ function tear_down() {
     # tear down our installation environment
     echo "${green}Tearing down installation environment${reset}"
     swapoff -a
+    rm -f /mnt/arch_install_chroot.sh
     umount -R /mnt
     cryptsetup close crypt-boot
     [ "${SWAP_ENABLED}" = true ] && cryptsetup close crypt-swap
