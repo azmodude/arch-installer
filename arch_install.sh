@@ -27,6 +27,15 @@ bootstrap_dialog_non_mandatory() {
 }
 
 setup() {
+    grep vendor_id /proc/cpuinfo | grep -q Intel && IS_INTEL_CPU=1 ||
+        IS_INTEL_CPU=0
+    grep vendor_id /proc/cpuinfo | grep -q AMD && IS_AMD_CPU=1 ||
+        IS_AMD_CPU=0
+    lspci -mm | grep -q "VGA.*AMD" && IS_AMD_GPU=1 || IS_AMD_GPU=0
+
+    [ -d /sys/firmware/efi ] && IS_EFI=true || IS_EFI=false
+    [ ${IS_EFI} == false ] && USE_GRUB=1 && USE_SYSTEMD_BOOT=0
+
     if [ -z "${INSTALL_DISK:-}" ]; then
         declare -a disks
         for disk in /dev/disk/by-id/*; do
@@ -104,13 +113,6 @@ setup() {
         exit 1
     fi
 
-    grep vendor_id /proc/cpuinfo | grep -q Intel && IS_INTEL_CPU=1 ||
-        IS_INTEL_CPU=0
-    grep vendor_id /proc/cpuinfo | grep -q AMD && IS_AMD_CPU=1 ||
-        IS_AMD_CPU=0
-    lspci -mm | grep -q "VGA.*AMD" && IS_AMD_GPU=1 || IS_AMD_GPU=0
-
-    [ -d /sys/firmware/efi ] && IS_EFI=true || IS_EFI=false
     case "${IS_EFI}" in
     true) echo "${green}Performing UEFI install${reset}" ;;
     false) echo "${green}Performing legacy BIOS install${reset}" ;;
@@ -280,9 +282,10 @@ install() {
         FSPOINTS="${FSPOINTS} resume=/dev/mapper/crypt-swap"
     fi
     EXTRA_PACKAGES+=("xfsprogs" "btrfs-progs")
+    [[ "${USE_GRUB}" -eq 1 ]] && EXTRA_PACKAGES+=("grub")
     pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
         systemd-resolvconf mkinitcpio gptfdisk parted \
-        linux linux-lts linux-zen linux-firmware grub \
+        linux linux-lts linux-zen linux-firmware \
         cryptsetup terminus-font apparmor python-cffi git \
         neovim "${EXTRA_PACKAGES[@]}"
     genfstab -U /mnt >>/mnt/etc/fstab
@@ -327,6 +330,10 @@ install() {
         LUKS_PARTITION_UUID_SWAP="${LUKS_PARTITION_UUID_SWAP:-}" \
         INSTALL_DISK="${INSTALL_DISK}" \
         IS_EFI="${IS_EFI}" \
+        USE_GRUB="${USE_GRUB}" \
+        USE_SYSTEMD_BOOT="${USE_SYSTEMD_BOOT}" \
+        IS_INTEL_CPU="${IS_INTEL_CPU}" \
+        IS_AMD_CPU="${IS_AMD_CPU}" \
         IS_AMD_GPU="${IS_AMD_GPU}" \
         FSPOINTS="${FSPOINTS}" \
         /bin/bash --login -c /arch_install_chroot.sh

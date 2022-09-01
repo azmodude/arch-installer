@@ -82,16 +82,37 @@ mkinitcpio -p linux-zen
 echo "${green}Setting root password${reset}"
 echo "root:${ROOT_PASSWORD}" | chpasswd
 echo "${green}Installing bootloader${reset}"
-sed -r -i "s/GRUB_CMDLINE_LINUX_DEFAULT=.*$/GRUB_CMDLINE_LINUX_DEFAULT=\"\"/" /etc/default/grub
-# cryptkey=... is kind of obsolete here, since sd-encrypt uses the embedded crypttab.initramfs
-sed -r -i "s/GRUB_CMDLINE_LINUX=.*$/GRUB_CMDLINE_LINUX=\"cryptkey=rootfs:\/etc\/luks\/luks_system_keyfile ${FSPOINTS//\//\\/} consoleblank=120 apparmor=1 lsm=landlock,lockdown,yama,integrity,apparmor,bpf rw\"/" /etc/default/grub
-sed -r -i "s/^GRUB_DEFAULT=.*$/GRUB_DEFAULT=saved/" /etc/default/grub
-sed -r -i "s/^#GRUB_SAVEDEFAULT=true/GRUB_SAVEDEFAULT=true/" /etc/default/grub
-sed -r -i "s/^#GRUB_DISABLE_SUBMENU=.*/GRUB_DISABLE_SUBMENU=y/" /etc/default/grub
-sed -r -i "s/^#GRUB_ENABLE_CRYPTODISK=.*/GRUB_ENABLE_CRYPTODISK=y/" /etc/default/grub
 
-case "${IS_EFI}" in
-true) grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=archlinux ;;
-false) grub-install --target=i386-pc --recheck "${INSTALL_DISK}" ;;
-esac
-grub-mkconfig -o /boot/grub/grub.cfg
+if [[ "${USE_GRUB}" -eq 1 ]]; then
+  sed -r -i "s/GRUB_CMDLINE_LINUX_DEFAULT=.*$/GRUB_CMDLINE_LINUX_DEFAULT=\"\"/" /etc/default/grub
+  # cryptkey=... is kind of obsolete here, since sd-encrypt uses the embedded crypttab.initramfs
+  sed -r -i "s/GRUB_CMDLINE_LINUX=.*$/GRUB_CMDLINE_LINUX=\"cryptkey=rootfs:\/etc\/luks\/luks_system_keyfile ${FSPOINTS//\//\\/} consoleblank=120 apparmor=1 lsm=landlock,lockdown,yama,integrity,apparmor,bpf rw\"/" /etc/default/grub
+  sed -r -i "s/^GRUB_DEFAULT=.*$/GRUB_DEFAULT=saved/" /etc/default/grub
+  sed -r -i "s/^#GRUB_SAVEDEFAULT=true/GRUB_SAVEDEFAULT=true/" /etc/default/grub
+  sed -r -i "s/^#GRUB_DISABLE_SUBMENU=.*/GRUB_DISABLE_SUBMENU=y/" /etc/default/grub
+  sed -r -i "s/^#GRUB_ENABLE_CRYPTODISK=.*/GRUB_ENABLE_CRYPTODISK=y/" /etc/default/grub
+
+  case "${IS_EFI}" in
+  true) grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=archlinux --removable ;;
+  false) grub-install --target=i386-pc --recheck "${INSTALL_DISK}" ;;
+  esac
+  grub-mkconfig -o /boot/grub/grub.cfg
+elif [[ "${USE_SYSTEMD_BOOT}" -eq 1 ]]; then
+  [ "${IS_INTEL_CPU}" -eq 1 ] && ucode="/intel-ucode.img"
+  [ "${IS_AMD_CPU}" -eq 1 ] && ucode="/amd-ucode.img"
+  bootctl install
+  systemctl enable systemd-boot-update.service
+  cat > /boot/efi/loader/loader.conf <<END
+default  archlinux.conf
+timeout  4
+console-mode max
+editor   yes
+END
+  cat > /boot/efi/loader/entries/archlinux.conf <<END
+title   Arch Linux
+linux   /vmlinuz-linux
+initrd  $ucode
+initrd  /initramfs-linux.img
+options cryptkey=rootfs:/etc/luks/luks_system_keyfile ${FSPOINTS} consoleblank=120 apparmor=1 lsm=landlock,lockdown,yama,integrity,apparmor,bpf rw
+END
+fi
