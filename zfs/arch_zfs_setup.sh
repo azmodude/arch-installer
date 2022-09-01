@@ -7,9 +7,18 @@ green=$(tput setaf 2)
 reset=$(tput sgr0)
 
 HOSTNAME_FQDN="$(hostnamectl hostname)"
-INSTALL_DISK="/dev/disk/by-id/...."
+INSTALL_DISK="/dev/disk/by-id/replaceme"
 POOL="dpool"
 ZFS_PARTITION_NUMBER="9"
+
+if echo "${INSTALL_DISK}" | grep -q "replace"; then
+  echo "${red}ERROR:${reset} Please add correct disk name in INSTALL_DISK variable inside script."
+  exit 1
+fi
+if ! lsmod | grep -q zfs; then
+  echo "${red}ERROR:${reset} ZFS kernel module not available."
+  exit 1
+fi
 
 zfs_partition_present=1
 
