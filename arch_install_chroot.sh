@@ -18,9 +18,6 @@ cat >/etc/hosts <<END
 127.0.1.1   ${HOSTNAME_FQDN} ${HOSTNAME%%.*}
 END
 
-echo "${green}Enabling NTP${reset}"
-timedatectl set-ntp true
-
 echo "${green}Enabling AppArmor${reset}"
 sed -r -i 's/^#(write-cache)$/\1/' /etc/apparmor/parser.conf
 systemctl enable apparmor.service
