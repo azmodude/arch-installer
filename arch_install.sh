@@ -55,7 +55,7 @@ setup() {
     fi
 
     if [ -z "${SWAP_SIZE:-}" ]; then
-        bootstrap_dialog --title "Swap Size" --inputbox "Please enter a swap size in GB. 0 to disable and *only* use zram.\n" 8 60
+        bootstrap_dialog --title "Swap Size" --inputbox "Please enter a swap size in GB. 0 to disable.\n" 8 60
         SWAP_SIZE="$dialog_result"
         [[ "${SWAP_SIZE}" == "0" ]] && SWAP_ENABLED=false || SWAP_ENABLED=true
     fi
@@ -270,7 +270,7 @@ install() {
     fi
     EXTRA_PACKAGES+=("xfsprogs" "btrfs-progs")
     pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
-        systemd-resolvconf mkinitcpio zram-generator gptfdisk parted \
+        systemd-resolvconf mkinitcpio gptfdisk parted \
         linux linux-lts linux-zen linux-firmware grub \
         cryptsetup terminus-font apparmor python-cffi git \
         neovim "${EXTRA_PACKAGES[@]}"
