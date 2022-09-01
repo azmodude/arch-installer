@@ -235,18 +235,18 @@ partition() {
     btrfs subvolume create /mnt/var/cache
     btrfs subvolume create /mnt/var/tmp
 
-#    # setup boot partition
-#    if [ "${ENCRYPT_BOOT}" = true ]; then
-#        mkfs.xfs -f -L boot /dev/mapper/crypt-boot
-#        mkdir -p /mnt/boot && mount /dev/mapper/crypt-boot /mnt/boot
-#    else
-#        mkfs.xfs -f -L boot "${INSTALL_DISK}-part2"
-#        mkdir -p /mnt/boot && mount "${INSTALL_DISK}-part2" /mnt/boot
-#    fi
+    # setup boot partition
+    if [ "${ENCRYPT_BOOT}" = true ]; then
+        mkfs.xfs -f -L boot /dev/mapper/crypt-boot
+        mkdir -p /mnt/boot && mount /dev/mapper/crypt-boot /mnt/boot
+    else
+        mkfs.xfs -f -L boot "${INSTALL_DISK}-part2"
+        mkdir -p /mnt/boot && mount "${INSTALL_DISK}-part2" /mnt/boot
+    fi
 
     # setup ESP
     mkfs.fat -F32 -n ESP "${INSTALL_DISK}-part1"
-    mkdir -p /mnt/boot && mount "${INSTALL_DISK}-part1" /mnt/boot
+    mkdir -p /mnt/boot/efi && mount "${INSTALL_DISK}-part1" /mnt/boot/efi
 }
 
 install() {
