@@ -29,8 +29,14 @@ systemctl enable fstrim.timer
 # enable btrfs monthly scrub for /
 systemctl enable btrfs-scrub@-.timer
 
-# setup zram and oomd
-systemctl enable systemd-zram-setup@zram0.service systemd-oomd.service
+# Blacklist radeon if AMD_GPU in system
+[[ "${IS_AMD_GPU}" -eq 1 ]] && echo "blacklist radeon" | sudo tee /etc/modprobe.d/radeon.conf
+
+# Enable SysRq
+echo "kernel.sysrq = 1" | sudo tee /etc/sysctl.d/99-kernel-sysrq.conf
+
+# setup zram
+systemctl enable systemd-zram-setup@zram0.service
 
 echo "${green}Cloning arch-installer repository to /root${reset}"
 git clone https://github.com/azmodude/arch-installer /root/arch-installer
