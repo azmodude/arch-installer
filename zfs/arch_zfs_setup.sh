@@ -66,3 +66,6 @@ systemctl enable zfs-scrub@${POOL}.timer
 zpool export ${POOL} && zpool import ${POOL}
 zfs load-key -L "file:///etc/zfs/zfskey_${POOL}_${HOSTNAME_FQDN}" ${POOL}
 zfs mount -a
+
+echo "${green}INFO${reset}: ZFS pool ${POOL} setup correctly."
+echo "${red}INFO${reset}: Remember to take a backup of keyfile /etc/zfs/zfskey_${POOL}_${HOSTNAME_FQDN}"
