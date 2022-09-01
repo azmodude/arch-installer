@@ -44,9 +44,20 @@ setup() {
     fi
 
     if [ -z "${ENCRYPTED_BOOT:-}" ]; then
-        bootstrap_dialog_yesno --title "Encrypted /boot" --yesno "Encrypt boot?\n" 8 60
+      bootstrap_dialog_yesno --title "Encrypted /boot" --yesno "Encrypt boot (implies GRUB)?\n" 8 60
         ENCRYPTED_BOOT="${dialog_result}"
         [[ "${ENCRYPTED_BOOT}" -eq 1 ]] && ENCRYPT_BOOT=false || ENCRYPT_BOOT=true
+        [[ "${ENCRYPTED_BOOT}" == true ]] && USE_GRUB=1
+    fi
+
+    if [ -z "${USE_GRUB:-}" ]; then
+      declare -a loaders
+      loaders=(systemd-boot grub)
+        bootstrap_dialog --title "Use which bootloader?" \
+            --menu "Use which bootloader?" 0 0 0 \
+            "${loaders[@]}"
+        [[ "${dialog_result}" == "grub" ]] && USE_GRUB=1 || USE_GRUB=0
+        [[ "${dialog_result}" == "systemd-boot" ]] && USE_SYSTEMD_BOOT=1 || USE_SYSTEMD_BOOT=0
     fi
 
     if [ -z "${OS_SIZE:-}" ]; then
@@ -238,15 +249,15 @@ partition() {
     # setup boot partition
     if [ "${ENCRYPT_BOOT}" = true ]; then
         mkfs.xfs -f -L boot /dev/mapper/crypt-boot
-        mkdir -p /mnt/boot && mount /dev/mapper/crypt-boot /mnt/boot
+        mount --mkdir /dev/mapper/crypt-boot /mnt/boot
     else
         mkfs.xfs -f -L boot "${INSTALL_DISK}-part2"
-        mkdir -p /mnt/boot && mount "${INSTALL_DISK}-part2" /mnt/boot
+        mount --mkdir "${INSTALL_DISK}-part2" /mnt/boot
     fi
 
     # setup ESP
     mkfs.fat -F32 -n ESP "${INSTALL_DISK}-part1"
-    mkdir -p /mnt/boot/efi && mount "${INSTALL_DISK}-part1" /mnt/boot/efi
+    mount --mkdir "${INSTALL_DISK}-part1" /mnt/boot/efi
 }
 
 install() {
