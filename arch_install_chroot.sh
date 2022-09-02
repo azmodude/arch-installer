@@ -103,13 +103,13 @@ elif [[ "${USE_SYSTEMD_BOOT}" -eq 1 ]]; then
   bootctl install
   systemctl enable systemd-boot-update.service
   cat > /boot/efi/loader/loader.conf <<END
-default  archlinux-zen.conf
+default  arch-linux-zen.conf
 timeout  4
 console-mode max
 editor   yes
 END
 for kernel in linux linux-lts linux-zen; do
-  cat > /boot/efi/loader/entries/archlinux.conf <<END
+  cat > /boot/efi/loader/entries/arch-${kernel}.conf <<END
 title   Arch Linux ${kernel}
 linux   /vmlinuz-${kernel}
 initrd  ${ucode}
