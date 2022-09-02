@@ -160,12 +160,14 @@ partition() {
 
     # try to re-read partitions for good measure...
     partprobe "${INSTALL_DISK}"
+    # ... still, give udev some time to create the new symlinks
+    sleep 2
+
+    # totally wipe old fs information
     for partition in 1 2 3; do
       wipefs -af "${INSTALL_DISK}"-part${partition}
     done
 
-    # ... still, give udev some time to create the new symlinks
-    sleep 2
     # create boot luks encrypted partition with forced iterations since grub is dog slow
     # 200000 should be plenty for now, tho
     #echo -n "${LUKS_PASSPHRASE}" |
