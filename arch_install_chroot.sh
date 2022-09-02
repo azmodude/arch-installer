@@ -104,7 +104,7 @@ elif [[ "${USE_SYSTEMD_BOOT}" -eq 1 ]]; then
   systemctl enable systemd-boot-update.service
   cat > /boot/loader/loader.conf <<END
 default  arch-linux-zen.conf
-timeout  4
+timeout  5
 console-mode max
 editor   yes
 END
@@ -114,7 +114,7 @@ title   Arch Linux ${kernel}
 linux   /vmlinuz-${kernel}
 initrd  ${ucode}
 initrd  /initramfs-${kernel}.img
-options cryptkey=rootfs:/etc/luks/luks_system_keyfile ${FSPOINTS} consoleblank=120 apparmor=1 lsm=landlock,lockdown,yama,integrity,apparmor,bpf rw
+options cryptkey=rootfs:/etc/luks/luks_system_keyfile ${FSPOINTS} rootflags=subvol=@ consoleblank=120 apparmor=1 lsm=landlock,lockdown,yama,integrity,apparmor,bpf rw
 END
 done
 fi
