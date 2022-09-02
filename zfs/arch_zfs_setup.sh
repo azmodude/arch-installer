@@ -31,6 +31,7 @@ else
         -c ${ZFS_PARTITION_NUMBER}:"zfs-${POOL}" \
         -t ${ZFS_PARTITION_NUMBER}:bf01 ${INSTALL_DISK}
     partprobe && sleep 2
+    wipefs -fa "${INSTALL_DISK}-part${ZFS_PARTITION_NUMBER}"
 fi
 
 echo "${green}Setting up and enabling ZFS${reset}"
