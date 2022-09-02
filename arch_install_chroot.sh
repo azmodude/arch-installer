@@ -93,7 +93,7 @@ if [[ "${USE_GRUB}" -eq 1 ]]; then
   sed -r -i "s/^#GRUB_ENABLE_CRYPTODISK=.*/GRUB_ENABLE_CRYPTODISK=y/" /etc/default/grub
 
   case "${IS_EFI}" in
-  true) grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=archlinux --removable ;;
+  true) grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=archlinux --removable ;;
   false) grub-install --target=i386-pc --recheck "${INSTALL_DISK}" ;;
   esac
   grub-mkconfig -o /boot/grub/grub.cfg
@@ -102,14 +102,14 @@ elif [[ "${USE_SYSTEMD_BOOT}" -eq 1 ]]; then
   [ "${IS_AMD_CPU}" -eq 1 ] && ucode="/amd-ucode.img"
   bootctl install
   systemctl enable systemd-boot-update.service
-  cat > /boot/efi/loader/loader.conf <<END
+  cat > /boot/loader/loader.conf <<END
 default  arch-linux-zen.conf
 timeout  4
 console-mode max
 editor   yes
 END
 for kernel in linux linux-lts linux-zen; do
-  cat > /boot/efi/loader/entries/arch-${kernel}.conf <<END
+  cat > /boot/loader/entries/arch-${kernel}.conf <<END
 title   Arch Linux ${kernel}
 linux   /vmlinuz-${kernel}
 initrd  ${ucode}
