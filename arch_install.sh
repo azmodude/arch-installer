@@ -103,7 +103,7 @@ setup() {
     fi
 
     bootstrap_dialog_non_mandatory --title "WARNING" \
-        --msgbox "This script will NUKE Partitions 1 to 4 on ${INSTALL_DISK}.\nPress <Enter> to continue or <Esc> to cancel.\n" \
+        --msgbox "This script will NUKE Partitions 1 to 3 on ${INSTALL_DISK}.\nPress <Enter> to continue or <Esc> to cancel.\n" \
         6 60
 
     clear
