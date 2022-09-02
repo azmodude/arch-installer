@@ -146,22 +146,23 @@ partition() {
     # calculate end of our OS partition
     #OS_END="$(echo "1551+(${LVM_SIZE}*1024)" | bc)MiB"
     # create partitions
-    for partition in 1 2 3 4; do
+    for partition in 1 2 3; do
         sgdisk --delete=${partition} "${INSTALL_DISK}" || true
     done
-    # EFI
-    sgdisk --new=1:0:+550M -c 1:"EFI ESP" -t 1:ef00 "${INSTALL_DISK}"
-    # boot
-    sgdisk --new=2:0:+5G -c 2:"boot" -t 2:8300 "${INSTALL_DISK}"
+    # EFI / Boot
+    sgdisk --new=1:0:+1G -c 1:"EFI ESP" -t 1:ef00 "${INSTALL_DISK}"
     # swap
     if [ "${SWAP_ENABLED}" = true ]; then
-        sgdisk --new=3:0:+"${SWAP_SIZE}G" -c 3:"swap" -t 3:8200 "${INSTALL_DISK}"
+        sgdisk --new=2:0:+"${SWAP_SIZE}G" -c 2:"swap" -t 2:8200 "${INSTALL_DISK}"
     fi
     # root
-    sgdisk --new=4:0:+"${OS_SIZE}G" -c 4:"system" -t 4:8300 "${INSTALL_DISK}"
+    sgdisk --new=3:0:+"${OS_SIZE}G" -c 3:"system" -t 2:8300 "${INSTALL_DISK}"
 
     # try to re-read partitions for good measure...
     partprobe "${INSTALL_DISK}"
+    for partition in 1 2 3; do
+      wipefs -af "${INSTALL_DISK}"-part${partition}
+    done
 
     # ... still, give udev some time to create the new symlinks
     sleep 2
@@ -171,31 +172,31 @@ partition() {
     #    cryptsetup -v --type luks1 --pbkdf-force-iterations 200000 \
     #    --cipher aes-xts-plain64 \
     #    --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
-    if [ "${ENCRYPT_BOOT}" = true ]; then
-        echo -n "${LUKS_PASSPHRASE}" |
-            cryptsetup -v --type luks1 \
-            --cipher aes-xts-plain64 \
-            --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part2"
-        echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part2" \
-            crypt-boot
-        LUKS_PARTITION_UUID_BOOT=$(cryptsetup luksUUID "${INSTALL_DISK}-part2")
-    fi
+    #if [ "${ENCRYPT_BOOT}" = true ]; then
+    #    echo -n "${LUKS_PASSPHRASE}" |
+    #        cryptsetup -v --type luks1 \
+    #        --cipher aes-xts-plain64 \
+    #        --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part2"
+    #    echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part2" \
+    #        crypt-boot
+    #    LUKS_PARTITION_UUID_BOOT=$(cryptsetup luksUUID "${INSTALL_DISK}-part2")
+    #fi
     # create swap encrypted partition
     if [ "${SWAP_ENABLED}" = true ]; then
         echo -n "${LUKS_PASSPHRASE}" |
             cryptsetup -v --type luks2 --cipher aes-xts-plain64 \
-                --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
-        echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part3" \
+                --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part2"
+        echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part2" \
             crypt-swap
-        LUKS_PARTITION_UUID_SWAP=$(cryptsetup luksUUID "${INSTALL_DISK}-part3")
+        LUKS_PARTITION_UUID_SWAP=$(cryptsetup luksUUID "${INSTALL_DISK}-part2")
     fi
     # create OS luks encrypted partition
     echo -n "${LUKS_PASSPHRASE}" |
         cryptsetup -v --type luks2 --cipher aes-xts-plain64 \
-            --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part4"
-    echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part4" \
+            --key-size 512 --hash sha512 luksFormat "${INSTALL_DISK}-part3"
+    echo -n "${LUKS_PASSPHRASE}" | cryptsetup open --type luks "${INSTALL_DISK}-part3" \
         crypt-system
-    LUKS_PARTITION_UUID_OS=$(cryptsetup luksUUID "${INSTALL_DISK}-part4")
+    LUKS_PARTITION_UUID_OS=$(cryptsetup luksUUID "${INSTALL_DISK}-part3")
 
     # create OS filesystem and swap
     mkfs.btrfs -L root /dev/mapper/crypt-system
@@ -249,17 +250,17 @@ partition() {
     btrfs subvolume create /mnt/var/tmp
 
     # setup boot partition
-    if [ "${ENCRYPT_BOOT}" = true ]; then
-        mkfs.xfs -f -L boot /dev/mapper/crypt-boot
-        mount --mkdir /dev/mapper/crypt-boot /mnt/boot
-    else
-        mkfs.xfs -f -L boot "${INSTALL_DISK}-part2"
-        mount --mkdir "${INSTALL_DISK}-part2" /mnt/boot
-    fi
+    #if [ "${ENCRYPT_BOOT}" = true ]; then
+    #    mkfs.ext4 -f -L boot /dev/mapper/crypt-boot
+    #    mount --mkdir /dev/mapper/crypt-boot /mnt/boot
+    #else
+    #    mkfs.ext4 -f -L boot "${INSTALL_DISK}-part2"
+    #    mount --mkdir "${INSTALL_DISK}-part2" /mnt/boot
+    #fi
 
     # setup ESP
     mkfs.fat -F32 -n ESP "${INSTALL_DISK}-part1"
-    mount --mkdir "${INSTALL_DISK}-part1" /mnt/boot/efi
+    mount --mkdir "${INSTALL_DISK}-part1" /mnt/boot
 }
 
 install() {
@@ -369,5 +370,3 @@ setup
 partition
 install
 #tear_down
-
-echo "${green}Installation finished${reset}"

@@ -103,16 +103,18 @@ elif [[ "${USE_SYSTEMD_BOOT}" -eq 1 ]]; then
   bootctl install
   systemctl enable systemd-boot-update.service
   cat > /boot/efi/loader/loader.conf <<END
-default  archlinux.conf
+default  archlinux-zen.conf
 timeout  4
 console-mode max
 editor   yes
 END
+for kernel in linux linux-lts linux-zen; do
   cat > /boot/efi/loader/entries/archlinux.conf <<END
-title   Arch Linux
-linux   /vmlinuz-linux
-initrd  $ucode
-initrd  /initramfs-linux.img
+title   Arch Linux ${kernel}
+linux   /vmlinuz-${kernel}
+initrd  ${ucode}
+initrd  /initramfs-${kernel}.img
 options cryptkey=rootfs:/etc/luks/luks_system_keyfile ${FSPOINTS} consoleblank=120 apparmor=1 lsm=landlock,lockdown,yama,integrity,apparmor,bpf rw
 END
+done
 fi
