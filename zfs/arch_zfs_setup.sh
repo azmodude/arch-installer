@@ -70,7 +70,7 @@ systemctl enable zfs-import-cache.service
 systemctl enable zfs-import.target
 systemctl enable zfs.target
 # enable monthly scrubbing
-systemctl enable zfs-scrub@${POOL}.timer
+systemctl enable --now zfs-scrub-monthly@${POOL}.timer
 
 zpool export ${POOL} && zpool import ${POOL}
 zfs load-key -L "file:///etc/zfs/zfskey_${POOL}_${HOSTNAME_FQDN}" ${POOL}
