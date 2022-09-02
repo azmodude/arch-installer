@@ -121,14 +121,13 @@ setup() {
 
 preinstall() {
     # load necessary modules incase arch decides to update the kernel mid-flight
-    modprobe dm_mod && modprobe dm_crypt && modprobe btrfs && \
-	    modprobe xfs && modprobe vfat
+    modprobe dm_mod && modprobe dm_crypt && modprobe btrfs && modprobe vfat
     echo "${green}Resizing /run/archiso/cowspace to 4GB to facilitate updates"
     mount -o remount,size=4G /run/archiso/cowspace
     # install needed stuff for install
     echo "${green}Installing necessary packages${reset}"
     pacman -Sy --needed --noconfirm parted util-linux dialog bc dosfstools \
-        arch-install-scripts xfsprogs gptfdisk openssl btrfs-progs
+        arch-install-scripts gptfdisk openssl btrfs-progs
     # set keys to German
     loadkeys de
     # enable NTP
