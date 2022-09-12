@@ -228,7 +228,7 @@ partition() {
   fi
   umount /mnt
 
-  mount -o subvol=@,noatime,autodefrag \
+  mount -o subvol=@,noatime,autodefrag,compression=zstd \
     /dev/mapper/crypt-system /mnt
   # mount root btrfs into /mnt/btrfs-root and make it only root-accessible
   mkdir -p /mnt/mnt/btrfs-root &&
@@ -239,25 +239,19 @@ partition() {
 
   if [[ "${USE_BTRFS}" -eq 1 ]]; then
     mkdir /mnt/home
-    mount -o subvol=@home,relatime,autodefrag \
+    mount -o subvol=@home,relatime,autodefrag,compression=zstd \
       /dev/mapper/crypt-system /mnt/home
 
     mkdir -p /mnt/var/lib/docker
-    mount -o subvol=@docker,compress=none,noatime,autodefrag \
+    mount -o subvol=@docker,compress=none,noatime,autodefrag,compression=zstd \
       /dev/mapper/crypt-system /mnt/var/lib/docker
     mkdir -p /mnt/var/lib/libvirt
     mount -o subvol=@libvirt,compress=none,nodatacow,noatime,noautodefrag \
       /dev/mapper/crypt-system /mnt/var/lib/libvirt
     # set NOCOW on that directory - I wish btrfs had per subvolume options...
     chattr +C /mnt/var/lib/libvirt
-
-    # enable compression where applicable
-    btrfs property set /mnt/home compression zstd
-    btrfs property set /mnt/var/lib/docker compression zstd
+    btrfs property set /mnt/var/lib/libvirt compression none
   fi
-
-  # enable compression where applicable
-  btrfs property set /mnt compression zstd
 
   # create extra subvolumes so we don't clobber our / snapshots
   mkdir -p /mnt/var || true
