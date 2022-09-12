@@ -250,7 +250,7 @@ partition() {
       /dev/mapper/crypt-system /mnt/var/lib/libvirt
     # set NOCOW on that directory - I wish btrfs had per subvolume options...
     chattr +C /mnt/var/lib/libvirt
-    btrfs property set /mnt/var/lib/libvirt compress none
+    btrfs property set /mnt/var/lib/libvirt compression none
   fi
 
   # create extra subvolumes so we don't clobber our / snapshots
