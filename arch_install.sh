@@ -70,7 +70,7 @@ setup() {
   fi
 
   if [ -z "${OS_SIZE:-}" ]; then
-    bootstrap_dialog --title "OS Size" --inputbox "Please enter a size of partition for OS in GB.\n" 8 60
+    bootstrap_dialog --title "OS Size" --inputbox "Please enter a size of partition for OS in GB. 0 to use largest free block.\n" 8 60
     OS_SIZE="$dialog_result"
   fi
 
