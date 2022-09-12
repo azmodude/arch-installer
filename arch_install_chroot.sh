@@ -86,7 +86,7 @@ echo "${green}Installing bootloader${reset}"
 if [[ "${USE_GRUB}" -eq 1 ]]; then
   sed -r -i "s/GRUB_CMDLINE_LINUX_DEFAULT=.*$/GRUB_CMDLINE_LINUX_DEFAULT=\"\"/" /etc/default/grub
   # cryptkey=... is kind of obsolete here, since sd-encrypt uses the embedded crypttab.initramfs
-  sed -r -i "s/GRUB_CMDLINE_LINUX=.*$/GRUB_CMDLINE_LINUX=\"cryptkey=rootfs:\/etc\/luks\/luks_system_keyfile ${FSPOINTS//\//\\/} consoleblank=120 apparmor=1 lsm=landlock,lockdown,yama,integrity,apparmor,bpf rw\"/" /etc/default/grub
+  sed -r -i "s/GRUB_CMDLINE_LINUX=.*$/GRUB_CMDLINE_LINUX=\"cryptkey=rootfs:\/etc\/luks\/luks_system_keyfile ${FSPOINTS//\//\\/} consoleblank=300 apparmor=1 lsm=landlock,lockdown,yama,integrity,apparmor,bpf rw\"/" /etc/default/grub
   sed -r -i "s/^GRUB_DEFAULT=.*$/GRUB_DEFAULT=saved/" /etc/default/grub
   sed -r -i "s/^#GRUB_SAVEDEFAULT=true/GRUB_SAVEDEFAULT=true/" /etc/default/grub
   sed -r -i "s/^#GRUB_DISABLE_SUBMENU=.*/GRUB_DISABLE_SUBMENU=y/" /etc/default/grub
@@ -114,7 +114,7 @@ title   Arch Linux ${kernel}
 linux   /vmlinuz-${kernel}
 initrd  ${ucode}
 initrd  /initramfs-${kernel}.img
-options cryptkey=rootfs:/etc/luks/luks_system_keyfile ${FSPOINTS} rootflags=subvol=@ consoleblank=120 apparmor=1 lsm=landlock,lockdown,yama,integrity,apparmor,bpf rw
+options cryptkey=rootfs:/etc/luks/luks_system_keyfile ${FSPOINTS} rootflags=subvol=@ consoleblank=300 apparmor=1 lsm=landlock,lockdown,yama,integrity,apparmor,bpf rw
 END
 done
 fi
