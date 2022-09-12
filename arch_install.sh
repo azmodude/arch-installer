@@ -234,6 +234,7 @@ partition() {
   mkdir -p /mnt/mnt/btrfs-root &&
     chown root:root /mnt/mnt/btrfs-root &&
     chown 700 /mnt/mnt/btrfs-root
+  mkdir /mnt/mnt/btrfs-root/snapshots
   mount -o subvolid=5,noatime,autodefrag \
     /dev/mapper/crypt-system /mnt/mnt/btrfs-root
 
