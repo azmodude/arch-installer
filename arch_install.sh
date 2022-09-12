@@ -59,10 +59,10 @@ setup() {
     [[ "${ENCRYPT_BOOT}" == true ]] && USE_GRUB=1
   fi
 
-  if [ -z "${USE_GRUB:-}" ]; then
+  if [ -z "${USE_GRUB:-}" ] && [ -z "${USE_SYSTEMD_BOOT}" ]; then
     declare -a loaders
     loaders=("systemd-boot" "Minimal Bootloader (recommended)" "grub" "Fully blown operating system (not recommended)")
-    bootstrap_dialog --title "Use which bootloader?" \
+    bootstrap_dialog --title "Bootloader" \
       --menu "Use which bootloader?" 0 0 0 \
       "${loaders[@]}"
     [[ "${dialog_result}" == "grub" ]] && USE_GRUB=1 || USE_GRUB=0
