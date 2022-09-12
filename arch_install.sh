@@ -80,6 +80,16 @@ setup() {
     [[ "${SWAP_SIZE}" == "0" ]] && SWAP_ENABLED=false || SWAP_ENABLED=true
   fi
 
+  if [ -z "${USE_ZFS:-}" ] && [ -z "${USE_BTRFS}" ]; then
+    declare -a loaders
+    loaders=("zfs" "Use ZFS (setup up after first boot)" "btrfs" "Use BTRFS")
+    bootstrap_dialog --title "Filesystem" \
+      --menu "Use which filesystem?" 0 0 0 \
+      "${loaders[@]}"
+    [[ "${dialog_result}" == "zfs" ]] && USE_ZFS=1 || USE_ZFS=0
+    [[ "${dialog_result}" == "btrfs" ]] && USE_BTRFS=1 || USE_BTRFS=0
+  fi
+
   if [ -z "${LUKS_PASSPHRASE:-}" ]; then
     bootstrap_dialog --title "Disk encryption" --passwordbox "Please enter a strong passphrase for the full disk encryption.\n" 8 60
     LUKS_PASSPHRASE="$dialog_result"
@@ -210,10 +220,12 @@ partition() {
 
   # create btrfs subvolumes
   btrfs subvolume create /mnt/@
-  # don't create anything non / for now, we are using zfs for the foreseeable future
-  #btrfs subvolume create /mnt/@home
-  #btrfs subvolume create /mnt/@docker
-  #btrfs subvolume create /mnt/@libvirt
+
+  if [[ "${USE_BTRFS}" -eq 1 ]]; then
+    btrfs subvolume create /mnt/@home
+    btrfs subvolume create /mnt/@docker
+    btrfs subvolume create /mnt/@libvirt
+  fi
   umount /mnt
 
   mount -o subvol=@,noatime,autodefrag \
@@ -225,24 +237,27 @@ partition() {
   mount -o subvolid=5,noatime,autodefrag \
     /dev/mapper/crypt-system /mnt/mnt/btrfs-root
 
-  # on zfs for now
-  #mkdir /mnt/home
-  #mount -o subvol=@home,relatime,autodefrag \
-  #    /dev/mapper/crypt-system /mnt/home
-  #
-  #mkdir -p /mnt/var/lib/docker
-  #mount -o subvol=@docker,compress=none,noatime,autodefrag \
-  #    /dev/mapper/crypt-system /mnt/var/lib/docker
-  #mkdir -p /mnt/var/lib/libvirt
-  #mount -o subvol=@libvirt,compress=none,nodatacow,noatime,noautodefrag \
-  #    /dev/mapper/crypt-system /mnt/var/lib/libvirt
-  ## set NOCOW on that directory - I wish btrfs had per subvolume options...
-  #chattr +C /mnt/var/lib/libvirt
+  if [[ "${USE_BTRFS}" -eq 1 ]]; then
+    mkdir /mnt/home
+    mount -o subvol=@home,relatime,autodefrag \
+      /dev/mapper/crypt-system /mnt/home
+
+    mkdir -p /mnt/var/lib/docker
+    mount -o subvol=@docker,compress=none,noatime,autodefrag \
+      /dev/mapper/crypt-system /mnt/var/lib/docker
+    mkdir -p /mnt/var/lib/libvirt
+    mount -o subvol=@libvirt,compress=none,nodatacow,noatime,noautodefrag \
+      /dev/mapper/crypt-system /mnt/var/lib/libvirt
+    # set NOCOW on that directory - I wish btrfs had per subvolume options...
+    chattr +C /mnt/var/lib/libvirt
+
+    # enable compression where applicable
+    btrfs property set /mnt/home compression zstd
+    btrfs property set /mnt/var/lib/docker compression zstd
+  fi
 
   # enable compression where applicable
   btrfs property set /mnt compression zstd
-  #btrfs property set /mnt/home compression zstd
-  #btrfs property set /mnt/var/lib/docker compression zstd
 
   # create extra subvolumes so we don't clobber our / snapshots
   mkdir -p /mnt/var || true
