@@ -15,14 +15,14 @@ if echo "${INSTALL_DISK}" | grep -q "replace"; then
   echo "${red}ERROR:${reset} Please add correct disk name in INSTALL_DISK variable inside script."
   exit 1
 fi
-if ! lsmod | grep -q zfs; then
+if ! grep -q "^zfs" /proc/modules; then
   echo "${red}ERROR:${reset} ZFS kernel module not available."
   exit 1
 fi
 
 zfs_partition_present=1
 
-if sgdisk -p ${INSTALL_DISK} | grep -E -q "\s+${ZFS_PARTITION_NUMBER}"; then
+if sgdisk -p ${INSTALL_DISK} | grep -E -q "^\s+${ZFS_PARTITION_NUMBER}"; then
     zfs_partition_present=0
     echo "${red}INFO${reset}: ZFS target partition ${green}${ZFS_PARTITION_NUMBER}${reset} already exists."
     echo "${red}INFO${reset} Manual touching of zfs-list.cache required (e.g. set a property)."
