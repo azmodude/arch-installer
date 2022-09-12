@@ -370,4 +370,4 @@ preinstall
 setup
 partition
 install
-#tear_down
+tear_down
