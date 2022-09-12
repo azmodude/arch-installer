@@ -59,7 +59,7 @@ setup() {
     [[ "${ENCRYPT_BOOT}" == true ]] && USE_GRUB=1
   fi
 
-  if [ -z "${USE_GRUB:-}" ] && [ -z "${USE_SYSTEMD_BOOT}" ]; then
+  if [ -z "${USE_GRUB:-}" ] && [ -z "${USE_SYSTEMD_BOOT:-}" ]; then
     declare -a loaders
     loaders=("systemd-boot" "Minimal Bootloader (recommended)" "grub" "Fully blown operating system (not recommended)")
     bootstrap_dialog --title "Bootloader" \
@@ -80,7 +80,7 @@ setup() {
     [[ "${SWAP_SIZE}" == "0" ]] && SWAP_ENABLED=false || SWAP_ENABLED=true
   fi
 
-  if [ -z "${USE_ZFS:-}" ] && [ -z "${USE_BTRFS}" ]; then
+  if [ -z "${USE_ZFS:-}" ] && [ -z "${USE_BTRFS:-}" ]; then
     declare -a loaders
     loaders=("zfs" "Use ZFS (setup up after first boot)" "btrfs" "Use BTRFS")
     bootstrap_dialog --title "Filesystem" \
