@@ -244,13 +244,13 @@ partition() {
     mount -o subvol=@home,relatime,autodefrag,compress=zstd \
       /dev/mapper/crypt-system /mnt/home
 
-    mkdir /mnt/.snaphosts
+    mkdir /mnt/.snapshots
     mount -o subvol=@snapshots,noatime,autodefrag,compress=zstd \
-      /dev/mapper/crypt-system /mnt/home
+      /dev/mapper/crypt-system /mnt/.snapshots
 
     mkdir -p /mnt/var
     mount -o subvol=@var,noatime,autodefrag,compress=zstd \
-      /dev/mapper/crypt-system /mnt/var/lib/docker
+      /dev/mapper/crypt-system /mnt/var
     mkdir -p /mnt/var/lib/docker
     mount -o subvol=@docker,compress=none,noatime,autodefrag,compress=zstd \
       /dev/mapper/crypt-system /mnt/var/lib/docker
