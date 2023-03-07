@@ -223,26 +223,34 @@ partition() {
 
   if [[ "${USE_BTRFS}" -eq 1 ]]; then
     btrfs subvolume create /mnt/@home
-    btrfs subvolume create /mnt/@docker
+    btrfs subvolume create /mnt/@var
     btrfs subvolume create /mnt/@libvirt
+    btrfs subvolume create /mnt/@docker
+    btrfs subvolume create /mnt/@snapshots
   fi
   umount /mnt
 
   mount -o subvol=@,noatime,autodefrag,compress=zstd \
     /dev/mapper/crypt-system /mnt
   # mount root btrfs into /mnt/btrfs-root and make it only root-accessible
-  mkdir -p /mnt/mnt/btrfs-root &&
+  mkdir -p /mnt/.btrfs-root &&
     chown root:root /mnt/mnt/btrfs-root &&
     chown 700 /mnt/mnt/btrfs-root
-  mkdir /mnt/mnt/btrfs-root/snapshots
   mount -o subvolid=5,noatime,autodefrag \
-    /dev/mapper/crypt-system /mnt/mnt/btrfs-root
+    /dev/mapper/crypt-system /mnt/.btrfs-root
 
   if [[ "${USE_BTRFS}" -eq 1 ]]; then
     mkdir /mnt/home
     mount -o subvol=@home,relatime,autodefrag,compress=zstd \
       /dev/mapper/crypt-system /mnt/home
 
+    mkdir /mnt/.snaphosts
+    mount -o subvol=@snapshots,noatime,autodefrag,compress=zstd \
+      /dev/mapper/crypt-system /mnt/home
+
+    mkdir -p /mnt/var
+    mount -o subvol=@var,noatime,autodefrag,compress=zstd \
+      /dev/mapper/crypt-system /mnt/var/lib/docker
     mkdir -p /mnt/var/lib/docker
     mount -o subvol=@docker,compress=none,noatime,autodefrag,compress=zstd \
       /dev/mapper/crypt-system /mnt/var/lib/docker
