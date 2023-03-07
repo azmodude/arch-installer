@@ -165,7 +165,7 @@ partition() {
     sgdisk --new=2:0:+"${SWAP_SIZE}G" -c 2:"swap" -t 2:8200 "${INSTALL_DISK}"
   fi
   # root
-  sgdisk --new=3:0:+"${OS_SIZE}G" -c 3:"system" -t 2:8300 "${INSTALL_DISK}"
+  sgdisk --new=3:0:+"${OS_SIZE}G" -c 3:"system" -t 3:8300 "${INSTALL_DISK}"
 
   # try to re-read partitions for good measure...
   partprobe "${INSTALL_DISK}"
