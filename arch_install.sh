@@ -174,7 +174,7 @@ partition() {
 
   # totally wipe old fs information
   for partition in 1 2 3; do
-    wipefs -af "${INSTALL_DISK}"-part${partition}
+    wipefs -af "${INSTALL_DISK}"-part${partition} || true
   done
 
   # create boot luks encrypted partition with forced iterations since grub is dog slow
