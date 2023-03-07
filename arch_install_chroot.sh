@@ -43,24 +43,24 @@ git clone https://github.com/azmodude/arch-bootstrap /root/arch-bootstrap
 echo "${green}Generating /etc/crypttab${reset}"
 
 if [[ -n "${LUKS_PARTITION_UUID_BOOT}" ]]; then
-    cat >/etc/crypttab <<END
+  cat >/etc/crypttab <<END
 crypt-system UUID=${LUKS_PARTITION_UUID_OS} /etc/luks/luks_system_keyfile discard
 crypt-boot UUID=${LUKS_PARTITION_UUID_BOOT} /etc/luks/luks_boot_keyfile discard
 END
-    FILES="/etc/luks/luks_system_keyfile /etc/luks/luks_boot_keyfile"
+  FILES="/etc/luks/luks_system_keyfile /etc/luks/luks_boot_keyfile"
 else
-    cat >/etc/crypttab <<END
+  cat >/etc/crypttab <<END
 crypt-system UUID=${LUKS_PARTITION_UUID_OS} none discard
 END
-    FILES=""
+  FILES=""
 fi
 if [[ -n "${LUKS_PARTITION_UUID_SWAP}" ]]; then
-    if [[ -n "${LUKS_PARTITION_UUID_BOOT}" ]]; then
-        echo "crypt-swap UUID=${LUKS_PARTITION_UUID_SWAP} /etc/luks/luks_swap_keyfile discard" >> /etc/crypttab
-        FILES="${FILES} /etc/luks/luks_swap_keyfile"
-    else
-        echo "crypt-swap UUID=${LUKS_PARTITION_UUID_SWAP} none discard" >> /etc/crypttab
-    fi
+  if [[ -n "${LUKS_PARTITION_UUID_BOOT}" ]]; then
+    echo "crypt-swap UUID=${LUKS_PARTITION_UUID_SWAP} /etc/luks/luks_swap_keyfile discard" >>/etc/crypttab
+    FILES="${FILES} /etc/luks/luks_swap_keyfile"
+  else
+    echo "crypt-swap UUID=${LUKS_PARTITION_UUID_SWAP} none discard" >>/etc/crypttab
+  fi
 fi
 
 # embed our crypttab in the initramfs for automatic unlock of volumes
@@ -102,19 +102,19 @@ elif [[ "${USE_SYSTEMD_BOOT}" -eq 1 ]]; then
   [ "${IS_AMD_CPU}" -eq 1 ] && ucode="/amd-ucode.img"
   bootctl install
   systemctl enable systemd-boot-update.service
-  cat > /boot/loader/loader.conf <<END
+  cat >/boot/loader/loader.conf <<END
 default  arch-linux-zen.conf
 timeout  5
 console-mode max
 editor   yes
 END
-for kernel in linux linux-lts linux-zen; do
-  cat > /boot/loader/entries/arch-${kernel}.conf <<END
+  for kernel in linux linux-lts linux-zen; do
+    cat >/boot/loader/entries/arch-${kernel}.conf <<END
 title   Arch Linux ${kernel}
 linux   /vmlinuz-${kernel}
 initrd  ${ucode}
 initrd  /initramfs-${kernel}.img
 options cryptkey=rootfs:/etc/luks/luks_system_keyfile ${FSPOINTS} rootflags=subvol=@ consoleblank=300 apparmor=1 lsm=landlock,lockdown,yama,integrity,apparmor,bpf rw
 END
-done
+  done
 fi
