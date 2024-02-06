@@ -19,7 +19,7 @@ cat >/etc/hosts <<END
 END
 
 mkdir -p /etc/cmdline.d
-echo "root=UUID=${LUKS_PARTITION_UUID_OS} rw" >/etc/cmdline.d/root.conf
+echo "rd.luks.name=device-${LUKS_PARTITION_UUID_OS}=crypt-system root=/dev/mapper/crypt-system"
 if [ ${SWAP_ENABLED} = true ]; then
   echo "resume=/dev/mapper/crypt-swap" >/etc/cmdline.d/resume.conf
 fi
@@ -150,6 +150,7 @@ COMPRESSION=zstd
 END
 echo "${green}Generating initrd${reset}"
 mkdir -p /boot/EFI/Linux
+chown root:root /boot && chmod 700 /boot
 mkinitcpio -p linux
 mkinitcpio -p linux-lts
 mkinitcpio -p linux-zen
@@ -176,12 +177,11 @@ elif [[ "${USE_SYSTEMD_BOOT}" -eq 1 ]]; then
   [ "${IS_AMD_CPU}" -eq 1 ] && ucode="/amd-ucode.img"
   bootctl install
   systemctl enable systemd-boot-update.service
-#   cat >/boot/loader/loader.conf <<END
-# default  arch-linux-zen.conf
-# timeout  5
-# console-mode max
-# editor   yes
-# END
+  cat >/boot/loader/loader.conf <<END
+timeout  5
+console-mode max
+editor   yes
+END
 #   for kernel in linux linux-lts linux-zen; do
 #     cat >/boot/loader/entries/arch-${kernel}.conf <<END
 # title   Arch Linux ${kernel}
@@ -190,5 +190,5 @@ elif [[ "${USE_SYSTEMD_BOOT}" -eq 1 ]]; then
 # initrd  /initramfs-${kernel}.img
 # options cryptkey=rootfs:/etc/luks/luks_system_keyfile ${FSPOINTS} rootflags=subvol=@ consoleblank=300 apparmor=1 lsm=landlock,lockdown,yama,integrity,apparmor,bpf rw
 # END
-  done
+#  done
 fi
