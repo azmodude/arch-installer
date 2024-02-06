@@ -22,16 +22,16 @@ destroy:
 	vagrant destroy -f
 
 test-vm-install:
-	virt-install --name=archtest --vcpus=4 \
-		--boot ${BOOT} \
+	sudo virt-install --name=archtest --vcpus=4 \
+		--boot ${BOOT},loader_secure=no \
         --memory=4096 --cdrom=${ISO} --disk \
         ${IMAGE},size=40,bus=sata --os-variant=archlinux
 test-vm:
-	virt-install --name=archtest --vcpus=4 --boot ${BOOT} --import \
+	virt-install --name=archtest --vcpus=4 --boot ${BOOT},loader_secure=no --import \
         --memory=2048 --disk ${IMAGE},bus=sata --os-variant=archlinux
 destroy-vm-install:
-	-virsh destroy archtest
-	-virsh undefine --nvram --domain "archtest" --remove-all-storage
+	-sudo virsh destroy archtest
+	-sudo virsh undefine --nvram --domain "archtest" --remove-all-storage
 destroy-vm:
 	-virsh undefine --nvram --domain "archtest"
 test-install: destroy-vm-install test-vm-install

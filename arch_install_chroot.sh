@@ -18,6 +18,79 @@ cat >/etc/hosts <<END
 127.0.1.1   ${HOSTNAME_FQDN} ${HOSTNAME%%.*}
 END
 
+mkdir -p /etc/cmdline.d
+echo "root=UUID=${LUKS_PARTITION_UUID_OS} rw" >/etc/cmdline.d/root.conf
+if [ ${SWAP_ENABLED} = true ]; then
+  echo "resume=/dev/mapper/crypt-swap" >/etc/cmdline.d/resume.conf
+fi
+cat >/etc/cmdline.d/security.conf <<END
+# enable apparmor
+lsm=landlock,lockdown,yama,integrity,apparmor,bpf audit=1 audit_backlog_limit=256"
+END
+mkdir -p /etc/mkinitcpio.d
+cat >/etc/mkinitcpio.d/linux.preset <<END
+# mkinitcpio preset file for the 'linux' package
+
+#ALL_config="/etc/mkinitcpio.conf"
+ALL_kver="/boot/vmlinuz-linux"
+ALL_microcode=(/boot/*-ucode.img)
+
+PRESETS=('default')
+
+#default_config="/etc/mkinitcpio.conf"
+#default_image="/boot/initramfs-linux.img"
+default_uki="/boot/EFI/Linux/arch-linux.efi"
+default_options="--splash=/usr/share/systemd/bootctl/splash-arch.bmp"
+END
+cat >/etc/mkinitcpio.d/linux-lts.preset <<END
+# mkinitcpio preset file for the 'linux-lts' package
+
+#ALL_config="/etc/mkinitcpio.conf"
+ALL_kver="/boot/vmlinuz-linux-lts"
+ALL_microcode=(/boot/*-ucode.img)
+
+PRESETS=('default')
+
+#default_config="/etc/mkinitcpio.conf"
+#default_image="/boot/initramfs-linux.img"
+default_uki="/boot/EFI/Linux/arch-linux-lts.efi"
+default_options="--splash=/usr/share/systemd/bootctl/splash-arch.bmp"
+END
+cat >/etc/mkinitcpio.d/linux-zen.preset <<END
+# mkinitcpio preset file for the 'linux-zen' package
+
+#ALL_config="/etc/mkinitcpio.conf"
+ALL_kver="/boot/vmlinuz-linux-zen"
+ALL_microcode=(/boot/*-ucode.img)
+
+PRESETS=('default')
+
+#default_config="/etc/mkinitcpio.conf"
+#default_image="/boot/initramfs-linux.img"
+default_uki="/boot/EFI/Linux/arch-linux-zen.efi"
+default_options="--splash=/usr/share/systemd/bootctl/splash-arch.bmp"
+END
+
+mkdir -p /etc/pacman.d/hooks
+cat >/etc/pacman.d/hooks/ucode.hook <<END
+[Trigger]
+Operation=Install
+Operation=Upgrade
+Operation=Remove
+Type=Package
+# Change to appropriate microcode package
+Target=${UCODE}
+# Change the linux part below and in the Exec line if a different kernel is used
+Target=linux
+
+[Action]
+Description=Update Microcode module in initcpio
+Depends=mkinitcpio
+When=PostTransaction
+NeedsTargets
+Exec=/bin/sh -c 'while read -r trg; do case $trg in linux) exit 0; esac; done; /usr/bin/mkinitcpio -P'
+END
+
 echo "${green}Enabling AppArmor${reset}"
 sed -r -i 's/^#(write-cache)$/\1/' /etc/apparmor/parser.conf
 systemctl enable apparmor.service
@@ -64,7 +137,7 @@ if [[ -n "${LUKS_PARTITION_UUID_SWAP}" ]]; then
 fi
 
 # embed our crypttab in the initramfs for automatic unlock of volumes
-ln -s /etc/crypttab /etc/crypttab.initramfs
+#ln -s /etc/crypttab /etc/crypttab.initramfs
 
 echo "${green}Generating mkinitcpio.conf${reset}"
 cat >/etc/mkinitcpio.conf <<END
@@ -72,10 +145,11 @@ MODULES=(${MODULES})
 # We don't really need luks_boot_keyfile this early, here for good measure
 FILES=(${FILES})
 BINARIES=()
-HOOKS="base systemd autodetect modconf sd-vconsole keyboard block sd-encrypt filesystems fsck"
+HOOKS="base systemd autodetect modconf kms sd-vconsole keyboard block sd-encrypt filesystems fsck"
 COMPRESSION=zstd
 END
 echo "${green}Generating initrd${reset}"
+mkdir -p /boot/EFI/Linux
 mkinitcpio -p linux
 mkinitcpio -p linux-lts
 mkinitcpio -p linux-zen
@@ -102,19 +176,19 @@ elif [[ "${USE_SYSTEMD_BOOT}" -eq 1 ]]; then
   [ "${IS_AMD_CPU}" -eq 1 ] && ucode="/amd-ucode.img"
   bootctl install
   systemctl enable systemd-boot-update.service
-  cat >/boot/loader/loader.conf <<END
-default  arch-linux-zen.conf
-timeout  5
-console-mode max
-editor   yes
-END
-  for kernel in linux linux-lts linux-zen; do
-    cat >/boot/loader/entries/arch-${kernel}.conf <<END
-title   Arch Linux ${kernel}
-linux   /vmlinuz-${kernel}
-initrd  ${ucode}
-initrd  /initramfs-${kernel}.img
-options cryptkey=rootfs:/etc/luks/luks_system_keyfile ${FSPOINTS} rootflags=subvol=@ consoleblank=300 apparmor=1 lsm=landlock,lockdown,yama,integrity,apparmor,bpf rw
-END
+#   cat >/boot/loader/loader.conf <<END
+# default  arch-linux-zen.conf
+# timeout  5
+# console-mode max
+# editor   yes
+# END
+#   for kernel in linux linux-lts linux-zen; do
+#     cat >/boot/loader/entries/arch-${kernel}.conf <<END
+# title   Arch Linux ${kernel}
+# linux   /vmlinuz-${kernel}
+# initrd  ${ucode}
+# initrd  /initramfs-${kernel}.img
+# options cryptkey=rootfs:/etc/luks/luks_system_keyfile ${FSPOINTS} rootflags=subvol=@ consoleblank=300 apparmor=1 lsm=landlock,lockdown,yama,integrity,apparmor,bpf rw
+# END
   done
 fi

@@ -222,38 +222,44 @@ partition() {
   btrfs subvolume create /mnt/@
 
   if [[ "${USE_BTRFS}" -eq 1 ]]; then
+    btrfs subvolume create /mnt/@snapshots
     btrfs subvolume create /mnt/@home
-    btrfs subvolume create /mnt/@var
+    btrfs subvolume create /mnt/@pkg
+    btrfs subvolume create /mnt/@log
     btrfs subvolume create /mnt/@libvirt
     btrfs subvolume create /mnt/@docker
-    btrfs subvolume create /mnt/@snapshots
   fi
   umount /mnt
 
   mount -o subvol=@,noatime,autodefrag,compress=zstd \
     /dev/mapper/crypt-system /mnt
   # mount root btrfs into /mnt/btrfs-root and make it only root-accessible
-  mkdir -p /mnt/.btrfs-root &&
-    chown root:root /mnt/mnt/btrfs-root &&
-    chown 700 /mnt/mnt/btrfs-root
+  mkdir -p /mnt/.btrfs/root &&
+    chown root:root /mnt/.btrfs/root &&
+    chown 700 /mnt/.btrfs/root
   mount -o subvolid=5,noatime,autodefrag \
-    /dev/mapper/crypt-system /mnt/.btrfs-root
+    /dev/mapper/crypt-system /mnt/.btrfs/root
+  mkdir /mnt/.btrfs/snapshots
+  mount -o subvol=@snapshots,noatime,autodefrag,compress=zstd \
+    /dev/mapper/crypt-system /mnt/.btrfs/snapshots
 
   if [[ "${USE_BTRFS}" -eq 1 ]]; then
     mkdir /mnt/home
     mount -o subvol=@home,relatime,autodefrag,compress=zstd \
       /dev/mapper/crypt-system /mnt/home
 
-    mkdir /mnt/.snapshots
-    mount -o subvol=@snapshots,noatime,autodefrag,compress=zstd \
-      /dev/mapper/crypt-system /mnt/.snapshots
+    mkdir -p /mnt/var/cache/pacman/pkg
+    mount -o subvol=@pkg,noatime,autodefrag,compress=zstd \
+      /dev/mapper/crypt-system /mnt/var/cache/pacman/pkg
 
-    mkdir -p /mnt/var
-    mount -o subvol=@var,noatime,autodefrag,compress=zstd \
-      /dev/mapper/crypt-system /mnt/var
+    mkdir -p /mnt/var/log
+    mount -o subvol=@log,noatime,autodefrag,compress=zstd \
+      /dev/mapper/crypt-system /mnt/var/log
+
     mkdir -p /mnt/var/lib/docker
     mount -o subvol=@docker,compress=none,noatime,autodefrag,compress=zstd \
       /dev/mapper/crypt-system /mnt/var/lib/docker
+
     mkdir -p /mnt/var/lib/libvirt
     mount -o subvol=@libvirt,compress=none,nodatacow,noatime,noautodefrag \
       /dev/mapper/crypt-system /mnt/var/lib/libvirt
@@ -261,12 +267,6 @@ partition() {
     # also turns off compression
     chattr +C /mnt/var/lib/libvirt
   fi
-
-  # create extra subvolumes so we don't clobber our / snapshots
-  mkdir -p /mnt/var || true
-  btrfs subvolume create /mnt/var/abs
-  btrfs subvolume create /mnt/var/cache
-  btrfs subvolume create /mnt/var/tmp
 
   # setup boot partition
   #if [ "${ENCRYPT_BOOT}" = true ]; then
@@ -287,10 +287,10 @@ install() {
   MODULES=""
 
   if [[ "${IS_INTEL_CPU}" -eq 1 ]]; then
-    EXTRA_PACKAGES=("intel-ucode")
+    UCODE="intel-ucode"
     MODULES="intel_agp i915"
   elif [[ "${IS_AMD_CPU}" -eq 1 ]]; then
-    EXTRA_PACKAGES=("amd-ucode")
+    UCODE="amd-ucode"
     MODULES="amdgpu"
   fi
   if [[ "${IS_AMD_GPU}" -eq 1 ]] && [[ "${IS_AMD_CPU}" -ne 1 ]]; then
@@ -304,10 +304,10 @@ install() {
   EXTRA_PACKAGES+=("xfsprogs" "btrfs-progs")
   [[ "${USE_GRUB}" -eq 1 ]] && EXTRA_PACKAGES+=("grub")
   pacstrap -i /mnt base base-devel dialog dhcpcd netctl iw iwd efibootmgr \
-    systemd-resolvconf mkinitcpio gptfdisk parted \
+    systemd-resolvconf systemd-ukify mkinitcpio gptfdisk parted \
     linux linux-lts linux-zen linux-firmware \
     cryptsetup terminus-font apparmor python-cffi git \
-    neovim "${EXTRA_PACKAGES[@]}"
+    neovim "${UCODE}" "${EXTRA_PACKAGES[@]}"
   genfstab -U /mnt >>/mnt/etc/fstab
 
   if [ "${ENCRYPT_BOOT}" = true ]; then
@@ -355,7 +355,8 @@ install() {
     IS_INTEL_CPU="${IS_INTEL_CPU}" \
     IS_AMD_CPU="${IS_AMD_CPU}" \
     IS_AMD_GPU="${IS_AMD_GPU}" \
-    FSPOINTS="${FSPOINTS}" \
+    SWAP_ENABLED="${SWAP_ENABLED}" \
+    UCODE="${UCODE}" \
     /bin/bash --login -c /arch_install_chroot.sh
   # remove temporary chroot script
   rm /mnt/arch_install_chroot.sh
